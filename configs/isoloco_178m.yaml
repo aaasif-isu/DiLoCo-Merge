@@ -1,0 +1,20 @@
+# IsoLoCo (Iso-C with Nesterov Momentum) Experiment Configuration
+# Inherits shared dataset (100M train / 2M val), 178M model, 4 workers, IID partitions, H=30, and seed=42 from configs/default.yaml.
+
+experiment:
+  run_name: isoloco_178m_dclm100m_w4
+
+method:
+  strategy: isoloco
+  outer_optimizer: isocloco
+  learning_rate: 1.8
+  momentum: 0.8
+  nesterov: true
+  isoc_orthogonalize_object: gradient
+  isoc_exclude_keys:
+    - embed_tokens
+    - lm_head
+
+checkpointing:
+  save_path: /lustre/hdd/LAS/jannesar-lab/aaasif/diloco_merge/outputs/isoloco_178m_dclm100m_w4
+

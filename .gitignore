@@ -32,3 +32,26 @@ checkpoints/
 .vscode/
 .idea/
 .DS_Store
+
+# Virtual environment
+diloco-env/
+
+# Data and experiment outputs
+data/
+outputs/
+results/
+logs/
+wandb/
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Secrets
+.env
+.env.*
+*.key

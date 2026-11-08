@@ -1,0 +1,77 @@
+# DiLoCo 15M TinyGPT Baseline Experiment Configuration
+# Single-GPU, 4 virtual workers, H=30 local steps, R=100 outer rounds, batch_size=8, seq_len=128.
+# Total 100-round training budget = 100 rounds * 4 workers * 30 local steps * 8 batch * 128 seq_len = 12,288,000 tokens.
+
+experiment:
+  run_name: diloco_15m_dclm_w4_s128_r100
+  project: diloco_merge_15m
+  seed: 42
+  log_wandb: true
+  debug: false
+  trace: false
+
+dataset:
+  name: mlfoundations/dclm-baseline-1.0-parquet
+  revision: main
+  shards_path: /lustre/hdd/LAS/jannesar-lab/aaasif/datasets/dclm_100m
+  shard_token_size: 100000000
+  token_budget: 12288000             # Exact 100-round token budget (3,072,000 tokens = 24,000 seqs of len 128 per worker)
+  sequence_length: 128
+  pin_data_to_gpu: false
+
+partitioning:
+  strategy: iid
+  partition_file: /lustre/hdd/LAS/jannesar-lab/aaasif/datasets/dclm_100m/partitions_train_iid_w4_15m_seq128.json
+  save_partitions: true
+  eval_partition_file: /lustre/hdd/LAS/jannesar-lab/aaasif/datasets/dclm_100m/partitions_valid_iid_w4_15m_seq128.json
+
+model:
+  architecture: tinygpt
+  size: 15M                          # ~15.02M parameter TinyGPT (d=256, L=8, H=8, d_ff=1024, tied 32K embeddings)
+  hparams_file: models/configs/15M_model_hparams.json
+  tokenizer_name: togethercomputer/LLaMA-2-7B-32K
+  tokenizer_revision: main
+  use_compile: true
+  torchtitan_init: false
+
+workers:
+  num_workers: 4                     # 4 virtual workers on 1 physical GPU
+  virtual_workers: 4
+
+training:
+  inner_outer_strategy: diloco
+  inner_steps: 30                    # 30 local optimizer steps per worker per outer round
+  batch_size: 8                      # Per-worker batch size (8 sequences * 128 tokens = 1,024 tokens/step)
+  micro_batch_size: 8
+  max_steps: 100                     # 100 outer synchronization rounds
+
+# Explicit 15M learning-rate settings (scaled for d_model=256 TinyGPT rather than 178M d_model=1024):
+# - Inner AdamW LR = 3.0e-3 with 10% linear warmup (10 outer rounds / 300 inner steps) and cosine decay to 3.0e-4.
+# - Outer DiLoCo Nesterov SGD LR = 0.7, momentum = 0.9.
+inner_optimizer:
+  type: adamw
+  learning_rate: 0.003
+  beta2: 0.95
+  weight_decay: 0.1
+  warmup_steps: 0.1
+
+method:
+  strategy: diloco_baseline
+  outer_optimizer: nesterov
+  learning_rate: 0.7
+  momentum: 0.9
+  nesterov: true
+  weight_decay: 0.0
+  use_outer_scheduler: false
+
+evaluation:
+  eval_frequency: 10                 # Validate every 10 outer synchronization rounds
+  val_token_budget: 2000000          # 2M validation tokens (15,625 sequences of length 128)
+  per_worker_eval: true
+
+checkpointing:
+  save_path: /lustre/hdd/LAS/jannesar-lab/aaasif/diloco_merge/outputs/diloco_15m_dclm_w4_s128_r100
+  checkpoint_frequency: 50
+  load_checkpoint: null
+  resume_from_checkpoint: false
+  save_final_diagnostics: false

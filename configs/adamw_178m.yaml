@@ -1,0 +1,24 @@
+# AdamW Data-Parallel Baseline — 178M model
+experiment:
+  run_name: adamw_178m_baseline
+  project: isoloco_178M_main
+
+model:
+  size: 178M
+  hparams_file: models/configs/178M_model_hparams.json
+
+training:
+  inner_outer_strategy: simple_accum
+  batch_size: 64
+  micro_batch_size: 32
+
+inner_optimizer:
+  beta2: 0.95
+  weight_decay: 0.15
+  warmup_steps: 0.1
+
+method:
+  strategy: adam_baseline
+  outer_optimizer: adamw
+  learning_rate: 0.00195
+  use_outer_scheduler: true

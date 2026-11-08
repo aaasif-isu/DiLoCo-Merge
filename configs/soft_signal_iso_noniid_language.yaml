@@ -1,0 +1,90 @@
+# Soft Signal-Selective IsoLoCo (soft_signal_iso) — mC4 15M Language-Separated Non-IID Configuration
+# Copied from the Signal-Iso 15M noniid_language configuration; changes only method and run/output identifiers.
+
+experiment:
+  run_name: mc4_15m_soft_signal_iso_noniid_language_w4_h30_r100_s42
+  run_id: null
+  project: diloco_merge_mc4_15m
+  seed: 42
+  log_wandb: true
+  debug: false
+  trace: false
+
+dataset:
+  key: mc4
+  name: allenai/c4
+  revision: 1588ec454efa1a09f29cd18ddd04fe05fc8653a2
+  shards_path: /lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual
+  shard_token_size: 12288000
+  token_budget: 12288000
+  val_tokens: 2000000
+  test_tokens: 2000000
+  buffer_size: 10000
+  sequence_length: 128
+  languages:
+    - en
+    - fr
+    - de
+    - es
+  pin_data_to_gpu: false
+
+partitioning:
+  strategy: noniid_language
+  partition_file: null
+  save_partitions: true
+  eval_partition_file: null
+
+model:
+  architecture: tinygpt
+  size: 15M
+  hparams_file: models/configs/15M_model_hparams.json
+  tokenizer_name: togethercomputer/LLaMA-2-7B-32K
+  tokenizer_revision: 46c24bb5aef59722fa7aa6d75e832afd1d64b980
+  use_compile: true
+  torchtitan_init: false
+
+workers:
+  num_workers: 4
+  virtual_workers: 4
+
+training:
+  inner_outer_strategy: diloco
+  inner_steps: 30
+  batch_size: 8
+  micro_batch_size: 8
+  max_steps: 100
+
+inner_optimizer:
+  type: adamw
+  learning_rate: 0.003
+  beta2: 0.95
+  weight_decay: 0.1
+  warmup_steps: 0.1
+
+method:
+  name: soft_signal_iso
+  strategy: soft_signal_iso
+  outer_optimizer: soft_signal_iso
+  learning_rate: 1.5
+  momentum: 0.8
+  nesterov: true
+  weight_decay: 0.0
+  use_outer_scheduler: false
+  outer_warmup_steps: null
+  isoc_orthogonalize_object: gradient
+  isoc_exclude_keys:
+    - embed_tokens
+    - wpe
+    - lm_head
+
+evaluation:
+  eval_frequency: 10
+  val_token_budget: 2000000
+  per_worker_eval: true
+
+checkpointing:
+  save_path: /lustre/hdd/LAS/jannesar-lab/aaasif/diloco_merge/outputs/mc4_15m_soft_signal_iso_noniid_language_w4_h30_r100_s42
+  checkpoint_frequency: 50
+  load_checkpoint: null
+  resume_from_checkpoint: false
+  save_final_diagnostics: false

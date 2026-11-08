@@ -3,16 +3,16 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = {"" = ".", "tplr" = "src/tplr"}
 
 [tool.setuptools.packages.find]
-where   = ["src"]
-include = ["tplr*"]
+where   = [".", "src"]
+include = ["models*", "data*", "methods*", "training*", "evaluation*", "tplr*"]
 
 [project]
 name = "isoloco"
 version = "0.1.0"
-description = "Code for 'Can Model Merging Improve Aggregation in DiLoCo?' — model-merging aggregation strategies for DiLoCo."
+description = "Modular research framework for model-merging aggregation strategies in DiLoCo (IsoLoCo)."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -22,6 +22,7 @@ dependencies = [
     "numpy",
     "einops",
     "pip",
+    "pyyaml",
     "wandb",
     "psutil",
     "accelerate",
@@ -31,6 +32,7 @@ dependencies = [
     "uvloop>=0.21.0",
     "setuptools"
 ]
+
 
 [tool.uv]
 prerelease = "allow"

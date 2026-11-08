@@ -1,0 +1,676 @@
+# Shared Base Configuration (configs/default.yaml)
+# Used by both `pretokenize_data.py --config configs/default.yaml` and `train.py --config configs/<exp>.yaml`.
+# Experiment-specific YAML files override only the settings that differ from this file.
+
+experiment:
+  run_name: dclm_178m_100m_w4
+  project: diloco_merge_178m
+  seed: 42
+  log_wandb: true
+  debug: false
+  trace: false
+
+dataset:
+  name: mlfoundations/dclm-baseline-1.0-parquet
+  revision: main
+  shards_path: /lustre/hdd/LAS/jannesar-lab/aaasif/datasets/dclm_100m
+  shard_token_size: 100000000        # 100M tokens per .npy shard
+  token_budget: 100000000            # 100 million training tokens across all workers
+  val_tokens: 2000000                # 2 million validation tokens for preprocessing
+  test_tokens: 2000000               # 2 million test tokens for preprocessing
+  val_split: 0.05                    # 5% of parquet source files reserved for validation
+  test_split: 0.05                   # 5% of parquet source files reserved for test
+  buffer_size: 10000                 # Deterministic streaming shuffle buffer size
+  sequence_length: 2048
+  pin_data_to_gpu: false
+
+partitioning:
+  strategy: iid                      # Original baseline IID contiguous partitioning over shuffled shards
+  partition_file: /lustre/hdd/LAS/jannesar-lab/aaasif/datasets/dclm_100m/partitions_train_iid_w4.json
+  save_partitions: true
+  eval_partition_file: /lustre/hdd/LAS/jannesar-lab/aaasif/datasets/dclm_100m/partitions_valid_iid_w4.json
+
+model:
+  architecture: llama
+  size: 178M                         # Official IsoLoCo Llama-style 178M model
+  hparams_file: models/configs/178M_model_hparams.json
+  tokenizer_name: togethercomputer/LLaMA-2-7B-32K
+  tokenizer_revision: main
+  hparams: {}
+  use_compile: true
+  torchtitan_init: false
+
+workers:
+  num_workers: 4                     # Total synchronous workers (world_size * virtual_workers)
+  virtual_workers: 1                 # Auto-computed as num_workers // world_size when num_workers is set
+
+training:
+  inner_outer_strategy: diloco       # Synchronous local-step training + outer pseudo-gradient aggregation
+  inner_steps: 30                    # Local training steps H between outer synchronizations
+  batch_size: 32                     # Per-worker batch size (sequences)
+  micro_batch_size: 32               # Per-worker micro-batch size per forward/backward pass
+  max_steps: -1                      # Auto-computed from token_budget (12 outer windows for 100M tokens, 4 workers, H=30)
+
+inner_optimizer:
+  type: adamw
+  learning_rate: 0.00138
+  beta2: 0.95
+  weight_decay: 0.1
+  warmup_steps: 0.1                  # 10% linear warmup followed by cosine decay
+
+method:
+  strategy: diloco_baseline          # Overridden by experiment-specific configs (diloco_178m.yaml / isoloco_178m.yaml)
+  outer_optimizer: nesterov
+  learning_rate: 0.7
+  momentum: 0.9
+  nesterov: true
+  weight_decay: 0.0
+  use_outer_scheduler: false
+  outer_warmup_steps: null
+
+  # Iso-C / IsoLoCo options
+  isoc_orthogonalize_object: gradient
+  isoc_exclude_keys:
+    - embed_tokens
+    - lm_head
+
+  # Iso-CTS options
+  isocts_common_space_fraction: 0.8
+  isocts_exclude_keys:
+    - embed_tokens
+    - lm_head
+
+  # TSVLoCo options
+  tsv_singular_ratio: null           # Defaults to 1 / num_workers
+  tsv_decorrelate: true
+
+  # MergeLoCo (TIES / DARE) options
+  sparsity: 0.0
+  prune_method: magnitude
+  prune_dimension: all
+  rescale_pruned: false
+  ties_disjoint: false
+
+  # Joint Spectral Allocation (spectral_alloc) options
+  calibration_batch_size: 8
+  calibration_micro_batch_size: 2
+  calibration_token_chunk_size: 128
+  eval_actual_calib_loss_change: true
+  kkt_tol: 1.0e-5
+  feas_tol: 1.0e-7
+
+evaluation:
+  eval_frequency: 2                  # Evaluate global & per-worker validation loss every 2 outer windows
+  val_token_budget: 2000000          # 2 million validation tokens
+  per_worker_eval: true              # Also evaluate per-worker validation loss on fixed partitions
+
+checkpointing:
+  save_path: /lustre/hdd/LAS/jannesar-lab/aaasif/diloco_merge/outputs/default
+  checkpoint_frequency: 6
+  load_checkpoint: null
+  resume_from_checkpoint: false
+  save_final_diagnostics: false
+
+# Reusable presets resolved by `training/config.py` when selecting dataset, model_size, and method.
+# Keeps model-size-specific and method-specific hyperparameters explicit so 178M settings are
+# never silently reused for 15M.
+presets:
+  datasets:
+    dclm:
+      dataset_key: dclm
+      dataset_name: mlfoundations/dclm-baseline-1.0-parquet
+      dataset_revision: 817d6752765f6a41261085171dd546b104f60626
+      shards_path: /lustre/hdd/LAS/jannesar-lab/aaasif/datasets/dclm_100m
+      shard_token_size: 100000000
+      val_token_budget: 2000000
+      test_tokens: 2000000
+      languages: null
+    mc4:
+      dataset_key: mc4
+      dataset_name: allenai/c4
+      dataset_revision: 1588ec454efa1a09f29cd18ddd04fe05fc8653a2
+      shards_path: /lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual
+      shard_token_size: 12288000
+      token_budget: 12288000
+      val_token_budget: 2000000
+      test_tokens: 2000000
+      sequence_length: 128
+      languages:
+        - en
+        - fr
+        - de
+        - es
+      partition_file: null
+      eval_partition_file: null
+
+  models:
+    15M:
+      model_architecture: tinygpt
+      model_size: 15M
+      hparams_file: models/configs/15M_model_hparams.json
+      tokenizer_name: togethercomputer/LLaMA-2-7B-32K
+      tokenizer_revision: 46c24bb5aef59722fa7aa6d75e832afd1d64b980
+      use_compile: true
+      torchtitan_init: false
+      batch_size: 8
+      micro_batch_size: 8
+      sequence_length: 128
+      inner_steps: 30
+      max_steps: 100
+      token_budget: 12288000
+      inner_learning_rate: 0.003
+      inner_beta2: 0.95
+      weight_decay: 0.1
+      warmup_steps: 0.1
+      eval_frequency: 10
+      checkpoint_frequency: 50
+      methods:
+        diloco:
+          method: diloco
+          strategy: diloco_baseline
+          outer_optimizer: nesterov
+          outer_learning_rate: 0.7
+          outer_momentum: 0.9
+          outer_nesterov: true
+        isoloco:
+          method: isoloco
+          strategy: isoloco
+          outer_optimizer: isocloco
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+        signal_iso:
+          method: signal_iso
+          strategy: signal_iso
+          outer_optimizer: signal_iso
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+        soft_signal_iso:
+          method: soft_signal_iso
+          strategy: soft_signal_iso
+          outer_optimizer: soft_signal_iso
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+        spectral_alloc:
+          method: spectral_alloc
+          strategy: spectral_alloc
+          outer_optimizer: spectral_alloc
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+          calibration_batch_size: 8
+          calibration_micro_batch_size: 2
+          calibration_token_chunk_size: 128
+          eval_actual_calib_loss_change: true
+          kkt_tol: 1.0e-5
+          feas_tol: 1.0e-7
+        spectral_alloc_decoupled:
+          method: spectral_alloc_decoupled
+          strategy: spectral_alloc_decoupled
+          outer_optimizer: spectral_alloc_decoupled
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+          calibration_batch_size: 8
+          calibration_micro_batch_size: 2
+          calibration_token_chunk_size: 128
+          eval_actual_calib_loss_change: true
+          kkt_tol: 1.0e-5
+          feas_tol: 1.0e-7
+        isocloco:
+          method: isocloco
+          strategy: isocloco
+          outer_optimizer: isocloco
+          outer_learning_rate: 1.5
+          outer_momentum: 0.0
+          outer_nesterov: false
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+        isoctsloco:
+          method: isoctsloco
+          strategy: isoctsloco
+          outer_optimizer: isoctsloco
+          outer_learning_rate: 1.5
+          outer_momentum: 0.0
+          outer_nesterov: false
+          isocts_common_space_fraction: 0.8
+          isocts_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+        tsvloco:
+          method: tsvloco
+          strategy: tsvloco
+          outer_optimizer: tsvloco
+          outer_learning_rate: 0.6
+          outer_momentum: 0.0
+          outer_nesterov: false
+          tsv_decorrelate: true
+        mergeloco:
+          method: mergeloco
+          strategy: mergeloco
+          outer_optimizer: mergeloco
+          outer_learning_rate: 0.7
+          outer_momentum: 0.0
+          outer_nesterov: false
+          sparsity: 0.1
+          prune_method: magnitude
+          prune_dimension: all
+          rescale_pruned: false
+          ties_disjoint: true
+        ties:
+          method: ties
+          strategy: mergeloco
+          outer_optimizer: mergeloco
+          outer_learning_rate: 0.7
+          outer_momentum: 0.0
+          outer_nesterov: false
+          sparsity: 0.1
+          prune_method: magnitude
+          prune_dimension: all
+          rescale_pruned: false
+          ties_disjoint: true
+        dare:
+          method: dare
+          strategy: mergeloco
+          outer_optimizer: mergeloco
+          outer_learning_rate: 1.5
+          outer_momentum: 0.0
+          outer_nesterov: false
+          sparsity: 0.1
+          prune_method: random
+          prune_dimension: all
+          rescale_pruned: true
+          ties_disjoint: false
+        diloco_sgd:
+          method: diloco_sgd
+          strategy: diloco_sgd_noMom
+          outer_optimizer: sgd
+          outer_learning_rate: 1.0
+          outer_momentum: 0.0
+          outer_nesterov: false
+        adam_baseline:
+          method: adam_baseline
+          strategy: adam_baseline
+          outer_optimizer: adamw
+          outer_learning_rate: 0.003
+          use_outer_scheduler: true
+
+    178M:
+      model_architecture: llama
+      model_size: 178M
+      hparams_file: models/configs/178M_model_hparams.json
+      tokenizer_name: togethercomputer/LLaMA-2-7B-32K
+      tokenizer_revision: 46c24bb5aef59722fa7aa6d75e832afd1d64b980
+      use_compile: true
+      torchtitan_init: false
+      batch_size: 32
+      micro_batch_size: 32
+      sequence_length: 2048
+      inner_steps: 30
+      max_steps: -1
+      token_budget: 100000000
+      inner_learning_rate: 0.00138
+      inner_beta2: 0.95
+      weight_decay: 0.1
+      warmup_steps: 0.1
+      eval_frequency: 2
+      checkpoint_frequency: 6
+      methods:
+        diloco:
+          strategy: diloco_baseline
+          outer_optimizer: nesterov
+          outer_learning_rate: 0.7
+          outer_momentum: 0.9
+          outer_nesterov: true
+        isoloco:
+          strategy: isoloco
+          outer_optimizer: isocloco
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+        signal_iso:
+          strategy: signal_iso
+          outer_optimizer: signal_iso
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+        soft_signal_iso:
+          method: soft_signal_iso
+          strategy: soft_signal_iso
+          outer_optimizer: soft_signal_iso
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+        spectral_alloc:
+          method: spectral_alloc
+          strategy: spectral_alloc
+          outer_optimizer: spectral_alloc
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          calibration_batch_size: 8
+          calibration_micro_batch_size: 2
+          calibration_token_chunk_size: 128
+          eval_actual_calib_loss_change: true
+          kkt_tol: 1.0e-5
+          feas_tol: 1.0e-7
+        spectral_alloc_decoupled:
+          method: spectral_alloc_decoupled
+          strategy: spectral_alloc_decoupled
+          outer_optimizer: spectral_alloc_decoupled
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          calibration_batch_size: 8
+          calibration_micro_batch_size: 2
+          calibration_token_chunk_size: 128
+          eval_actual_calib_loss_change: true
+          kkt_tol: 1.0e-5
+          feas_tol: 1.0e-7
+        isocloco:
+          method: isocloco
+          strategy: isocloco
+          outer_optimizer: isocloco
+          outer_learning_rate: 2.1
+          outer_momentum: 0.0
+          outer_nesterov: false
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+        isoctsloco:
+          method: isoctsloco
+          strategy: isoctsloco
+          outer_optimizer: isoctsloco
+          outer_learning_rate: 3.1
+          outer_momentum: 0.0
+          outer_nesterov: false
+          isocts_common_space_fraction: 0.8
+          isocts_exclude_keys:
+            - embed_tokens
+            - lm_head
+        tsvloco:
+          method: tsvloco
+          strategy: tsvloco
+          outer_optimizer: tsvloco
+          outer_learning_rate: 0.6
+          outer_momentum: 0.0
+          outer_nesterov: false
+          tsv_decorrelate: true
+        mergeloco:
+          method: mergeloco
+          strategy: mergeloco
+          outer_optimizer: mergeloco
+          outer_learning_rate: 0.7
+          outer_momentum: 0.0
+          outer_nesterov: false
+          sparsity: 0.1
+          prune_method: magnitude
+          prune_dimension: all
+          rescale_pruned: false
+          ties_disjoint: true
+        ties:
+          method: ties
+          strategy: mergeloco
+          outer_optimizer: mergeloco
+          outer_learning_rate: 0.7
+          outer_momentum: 0.0
+          outer_nesterov: false
+          sparsity: 0.1
+          prune_method: magnitude
+          prune_dimension: all
+          rescale_pruned: false
+          ties_disjoint: true
+        dare:
+          method: dare
+          strategy: mergeloco
+          outer_optimizer: mergeloco
+          outer_learning_rate: 1.5
+          outer_momentum: 0.0
+          outer_nesterov: false
+          sparsity: 0.1
+          prune_method: random
+          prune_dimension: all
+          rescale_pruned: true
+          ties_disjoint: false
+        diloco_sgd:
+          method: diloco_sgd
+          strategy: diloco_sgd_noMom
+          outer_optimizer: sgd
+          outer_learning_rate: 1.0
+          outer_momentum: 0.0
+          outer_nesterov: false
+        adam_baseline:
+          method: adam_baseline
+          strategy: adam_baseline
+          outer_optimizer: adamw
+          outer_learning_rate: 0.00195
+          use_outer_scheduler: true
+
+    512M:
+      model_architecture: llama
+      model_size: 512M
+      hparams_file: models/configs/512M_model_hparams.json
+      tokenizer_name: togethercomputer/LLaMA-2-7B-32K
+      tokenizer_revision: 46c24bb5aef59722fa7aa6d75e832afd1d64b980
+      use_compile: true
+      torchtitan_init: false
+      batch_size: 128
+      micro_batch_size: 8
+      sequence_length: 2048
+      inner_steps: 30
+      max_steps: -1
+      token_budget: 10247976960
+      inner_learning_rate: 0.000691
+      inner_beta2: 0.95
+      weight_decay: 0.1
+      warmup_steps: 0.1
+      eval_frequency: 50
+      checkpoint_frequency: 500
+      methods:
+        diloco:
+          method: diloco
+          strategy: diloco_baseline
+          outer_optimizer: nesterov
+          outer_learning_rate: 0.7
+          outer_momentum: 0.9
+          outer_nesterov: true
+        isoloco:
+          method: isoloco
+          strategy: isoloco
+          outer_optimizer: isocloco
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+        signal_iso:
+          method: signal_iso
+          strategy: signal_iso
+          outer_optimizer: signal_iso
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+        soft_signal_iso:
+          method: soft_signal_iso
+          strategy: soft_signal_iso
+          outer_optimizer: soft_signal_iso
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+        spectral_alloc:
+          method: spectral_alloc
+          strategy: spectral_alloc
+          outer_optimizer: spectral_alloc
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          calibration_batch_size: 8
+          calibration_micro_batch_size: 2
+          calibration_token_chunk_size: 128
+          eval_actual_calib_loss_change: true
+          kkt_tol: 1.0e-5
+          feas_tol: 1.0e-7
+        spectral_alloc_decoupled:
+          method: spectral_alloc_decoupled
+          strategy: spectral_alloc_decoupled
+          outer_optimizer: spectral_alloc_decoupled
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          calibration_batch_size: 8
+          calibration_micro_batch_size: 2
+          calibration_token_chunk_size: 128
+          eval_actual_calib_loss_change: true
+          kkt_tol: 1.0e-5
+          feas_tol: 1.0e-7
+        isocloco:
+          method: isocloco
+          strategy: isocloco
+          outer_optimizer: isocloco
+          outer_learning_rate: 2.1
+          outer_momentum: 0.0
+          outer_nesterov: false
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+        isoctsloco:
+          method: isoctsloco
+          strategy: isoctsloco
+          outer_optimizer: isoctsloco
+          outer_learning_rate: 3.1
+          outer_momentum: 0.0
+          outer_nesterov: false
+          isocts_common_space_fraction: 0.8
+          isocts_exclude_keys:
+            - embed_tokens
+            - lm_head
+        tsvloco:
+          method: tsvloco
+          strategy: tsvloco
+          outer_optimizer: tsvloco
+          outer_learning_rate: 0.6
+          outer_momentum: 0.0
+          outer_nesterov: false
+          tsv_decorrelate: true
+        mergeloco:
+          method: mergeloco
+          strategy: mergeloco
+          outer_optimizer: mergeloco
+          outer_learning_rate: 0.7
+          outer_momentum: 0.0
+          outer_nesterov: false
+          sparsity: 0.1
+          prune_method: magnitude
+          prune_dimension: all
+          rescale_pruned: false
+          ties_disjoint: true
+        ties:
+          method: ties
+          strategy: mergeloco
+          outer_optimizer: mergeloco
+          outer_learning_rate: 0.7
+          outer_momentum: 0.0
+          outer_nesterov: false
+          sparsity: 0.1
+          prune_method: magnitude
+          prune_dimension: all
+          rescale_pruned: false
+          ties_disjoint: true
+        dare:
+          method: dare
+          strategy: mergeloco
+          outer_optimizer: mergeloco
+          outer_learning_rate: 1.5
+          outer_momentum: 0.0
+          outer_nesterov: false
+          sparsity: 0.1
+          prune_method: random
+          prune_dimension: all
+          rescale_pruned: true
+          ties_disjoint: false
+        diloco_sgd:
+          method: diloco_sgd
+          strategy: diloco_sgd_noMom
+          outer_optimizer: sgd
+          outer_learning_rate: 1.0
+          outer_momentum: 0.0
+          outer_nesterov: false
+        adam_baseline:
+          method: adam_baseline
+          strategy: adam_baseline
+          outer_optimizer: adamw
+          outer_learning_rate: 0.000691
+          use_outer_scheduler: true
+
+

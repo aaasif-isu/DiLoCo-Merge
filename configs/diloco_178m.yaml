@@ -1,0 +1,16 @@
+# DiLoCo Baseline Experiment Configuration
+# Inherits shared dataset (100M train / 2M val), 178M model, 4 workers, IID partitions, H=30, and seed=42 from configs/default.yaml.
+
+experiment:
+  run_name: diloco_178m_dclm100m_w4
+
+method:
+  strategy: diloco_baseline
+  outer_optimizer: nesterov
+  learning_rate: 0.6
+  momentum: 0.8
+  nesterov: true
+
+checkpointing:
+  save_path: /lustre/hdd/LAS/jannesar-lab/aaasif/diloco_merge/outputs/diloco_178m_dclm100m_w4
+

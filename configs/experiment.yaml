@@ -1,0 +1,82 @@
+# Active Experiment Configuration (configs/experiment.yaml)
+# Controls the current experiment while inheriting shared defaults and model/method/dataset
+# presets from configs/default.yaml.
+#
+# Multilingual mC4 combinations can be launched from this single config via CLI flags:
+#   1. DiLoCo + IID:               python train.py --config configs/experiment.yaml --method diloco --partition iid
+#   2. IsoLoCo + IID:              python train.py --config configs/experiment.yaml --method isoloco --partition iid
+#   3. Signal-IsoLoCo + IID:       python train.py --config configs/experiment.yaml --method signal_iso --partition iid
+#   4. Soft-Signal-IsoLoCo + IID:  python train.py --config configs/experiment.yaml --method soft_signal_iso --partition iid
+#   5. Spectral-Alloc + IID:       python train.py --config configs/experiment.yaml --method spectral_alloc --partition iid
+#   6. DiLoCo + non-IID:           python train.py --config configs/experiment.yaml --method diloco --partition noniid_language
+#   7. IsoLoCo + non-IID:          python train.py --config configs/experiment.yaml --method isoloco --partition noniid_language
+#   8. Signal-IsoLoCo + non-IID:   python train.py --config configs/experiment.yaml --method signal_iso --partition noniid_language
+#   9. Soft-Signal-IsoLoCo + non-IID: python train.py --config configs/experiment.yaml --method soft_signal_iso --partition noniid_language
+#  10. Spectral-Alloc + non-IID:   python train.py --config configs/experiment.yaml --method spectral_alloc --partition noniid_language
+#  11. 20-round E1 diagnostic:     python train.py --config configs/experiment.yaml --method spectral_alloc --partition iid --max_steps 20
+#  12. Decoupled Spectral-Alloc + IID:     python train.py --config configs/experiment.yaml --method spectral_alloc_decoupled --partition iid
+#  13. Decoupled Spectral-Alloc + non-IID: python train.py --config configs/experiment.yaml --method spectral_alloc_decoupled --partition noniid_language
+
+experiment:
+  run_name: auto
+  run_id: null                       # Auto-generated from seed/workers/steps if null, or set explicitly
+  project: diloco_merge_mc4_15m
+  seed: 42
+  log_wandb: true
+  debug: false
+  trace: false
+
+dataset:
+  key: mc4                           # "mc4" or "dclm" (override via --dataset)
+  name: allenai/c4
+  revision: 1588ec454efa1a09f29cd18ddd04fe05fc8653a2
+  shards_path: /lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual
+  shard_token_size: 12288000
+  token_budget: 12288000             # 3,072,000 tokens per language * 4 languages = 12,288,000 total
+  val_tokens: 2000000                # 500,000 tokens per language * 4 languages = 2,000,000 total
+  test_tokens: 2000000               # 500,000 tokens per language * 4 languages = 2,000,000 total
+  buffer_size: 10000
+  sequence_length: 128
+  languages:
+    - en
+    - fr
+    - de
+    - es
+  pin_data_to_gpu: false
+
+partitioning:
+  strategy: iid                      # "iid" or "noniid_language" (override via --partition)
+  partition_file: null               # Auto-resolved to partitions_train_<strategy>_w<workers>.json in shards_path
+  save_partitions: true
+  eval_partition_file: null          # Auto-resolved to partitions_valid_<strategy>_w<workers>.json in shards_path
+
+model:
+  size: 15M                          # "15M", "178M", or "512M" (override via --model_size)
+  tokenizer_name: togethercomputer/LLaMA-2-7B-32K
+  tokenizer_revision: 46c24bb5aef59722fa7aa6d75e832afd1d64b980
+
+workers:
+  num_workers: 4                     # 4 virtual workers on 1 physical GPU
+  virtual_workers: 4
+
+training:
+  inner_outer_strategy: diloco
+  inner_steps: 30                    # 30 local optimization steps per outer round
+  batch_size: 8                      # Per-worker batch size
+  micro_batch_size: 8
+  max_steps: 100                     # 100 outer synchronization rounds
+
+method:
+  name: diloco                       # "diloco" or "isoloco" (override via --method; resolves explicit model-size preset)
+
+evaluation:
+  eval_frequency: 10
+  val_token_budget: 2000000
+  per_worker_eval: true
+
+checkpointing:
+  save_path: auto                    # Auto-generated as outputs/<dataset>_<model>_<method>_<partition>_<run_id>/
+  checkpoint_frequency: 50
+  load_checkpoint: null
+  resume_from_checkpoint: false
+  save_final_diagnostics: false

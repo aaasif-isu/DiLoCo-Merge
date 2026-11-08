@@ -1,0 +1,1090 @@
+
+======================================================================
+Experiment: mc4_15m_diloco_iid_w4_h30_r100_s42
+{
+  "updated_at": "2026-11-07T08:26:28.666905+00:00",
+  "num_logged_steps": 100,
+  "best_valid_loss": 6.080696751750315,
+  "best_valid_round": 99,
+  "final_metrics": {
+    "step": 99,
+    "timestamp": "2026-11-07T08:26:27.936273+00:00",
+    "train/loss_after_inner": 5.873264312744141,
+    "train/perplexity": 355.4072491761143,
+    "train/loss_after_gather": 5.83220100402832,
+    "train/perplexity_after_gather": 341.10863492062333,
+    "train/total_tokens": 122880,
+    "train/batch_count": 120,
+    "train/outer_learning_rate": 0.7,
+    "train/inner_learning_rate": 0.00030000000000000003,
+    "train/tokens_per_sec": 25322.354988770083,
+    "train/window": 99,
+    "eval/valid_loss": 6.080696751750315,
+    "eval/valid_perplexity": 437.3338016801442,
+    "eval/valid_tokens": 1999872,
+    "eval/valid_batches": 1956,
+    "eval/best_valid_loss": 6.080696751750315,
+    "eval/best_valid_round": 99,
+    "eval/valid_loss_en": 6.62777731617597,
+    "eval/valid_perplexity_en": 755.8003969920516,
+    "eval/valid_tokens_en": 499968,
+    "eval/valid_loss_fr": 5.822149893716245,
+    "eval/valid_perplexity_fr": 337.6972870387564,
+    "eval/valid_tokens_fr": 499968,
+    "eval/valid_loss_de": 6.195831666039126,
+    "eval/valid_perplexity_de": 490.69937334866194,
+    "eval/valid_tokens_de": 499968,
+    "eval/valid_loss_es": 5.677028131069919,
+    "eval/valid_perplexity_es": 292.08011499850153,
+    "eval/valid_tokens_es": 499968,
+    "eval/val_loss_equal_language": 6.080696751750315,
+    "eval/local_worker_0_val_loss": 6.00569869993163,
+    "eval/local_worker_0_val_tokens": 499712,
+    "eval/local_worker_1_val_loss": 6.157398010375069,
+    "eval/local_worker_1_val_tokens": 499712,
+    "eval/local_worker_2_val_loss": 6.1019475811817605,
+    "eval/local_worker_2_val_tokens": 499712,
+    "eval/local_worker_3_val_loss": 6.102724544337539,
+    "eval/local_worker_3_val_tokens": 499712,
+    "eval/local_mean_worker_val_loss": 6.0919422089565,
+    "eval/local_std_worker_val_loss": 0.05463234165287372,
+    "eval/worker_0_val_loss": 5.99203470935587,
+    "eval/worker_0_val_tokens": 499712,
+    "eval/worker_1_val_loss": 6.154763415700099,
+    "eval/worker_1_val_tokens": 499712,
+    "eval/worker_2_val_loss": 6.089205085254107,
+    "eval/worker_2_val_tokens": 499712,
+    "eval/worker_3_val_loss": 6.087584859035054,
+    "eval/worker_3_val_tokens": 499712,
+    "eval/mean_worker_val_loss": 6.080897017336283,
+    "eval/std_worker_val_loss": 0.05802263740550471
+  },
+  "config": {
+    "config": "configs/experiment.yaml",
+    "run_name": "mc4_15m_diloco_iid_w4_h30_r100_s42",
+    "run_id": null,
+    "project": "diloco_merge_mc4_15m",
+    "seed": 42,
+    "method": "diloco",
+    "strategy": "diloco_baseline",
+    "inner_outer_strategy": "diloco",
+    "inner_optimizer": "adamw",
+    "outer_optimizer": "nesterov",
+    "num_workers": 4,
+    "virtual_workers": 4,
+    "inner_learning_rate": 0.003,
+    "inner_steps": 30,
+    "inner_beta2": 0.95,
+    "outer_learning_rate": 0.7,
+    "outer_momentum": 0.9,
+    "outer_nesterov": true,
+    "outer_weight_decay": 0.0,
+    "use_outer_scheduler": false,
+    "outer_warmup_steps": null,
+    "weight_decay": 0.1,
+    "warmup_steps": 0.1,
+    "max_steps": 100,
+    "batch_size": 8,
+    "micro_batch_size": 8,
+    "sequence_length": 128,
+    "dataset_key": "mc4",
+    "dataset_name": "allenai/c4",
+    "dataset_revision": "1588ec454efa1a09f29cd18ddd04fe05fc8653a2",
+    "shards_path": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual",
+    "token_budget": 12288000,
+    "shard_token_size": 12288000,
+    "pin_data_to_gpu": false,
+    "partition_strategy": "iid",
+    "partition_file": null,
+    "save_partitions": true,
+    "eval_partition_file": null,
+    "eval_frequency": 10,
+    "val_token_budget": 2000000,
+    "per_worker_eval": true,
+    "save_path": "/lustre/hdd/LAS/jannesar-lab/aaasif/diloco_merge/outputs/mc4_15m_diloco_iid_w4_h30_r100_s42",
+    "checkpoint_frequency": 50,
+    "load_checkpoint": null,
+    "resume_from_checkpoint": false,
+    "save_final_diagnostics": false,
+    "model_architecture": "tinygpt",
+    "model_size": "15M",
+    "hparams_file": "models/configs/15M_model_hparams.json",
+    "tokenizer_name": "togethercomputer/LLaMA-2-7B-32K",
+    "tokenizer_revision": "46c24bb5aef59722fa7aa6d75e832afd1d64b980",
+    "model_hparams": {},
+    "torchtitan_init": false,
+    "use_compile": true,
+    "debug": false,
+    "trace": false,
+    "log_wandb": true,
+    "sparsity": 0.0,
+    "prune_method": "magnitude",
+    "prune_dimension": "all",
+    "rescale_pruned": false,
+    "ties_disjoint": false,
+    "tsv_singular_ratio": null,
+    "tsv_decorrelate": true,
+    "isoc_orthogonalize_object": "gradient",
+    "isocts_common_space_fraction": 0.8,
+    "isoc_exclude_keys": [
+      "embed_tokens",
+      "lm_head"
+    ],
+    "isocts_exclude_keys": [
+      "embed_tokens",
+      "lm_head"
+    ],
+    "test_tokens": 2000000,
+    "languages": [
+      "en",
+      "fr",
+      "de",
+      "es"
+    ],
+    "resolved_model_hparams": {
+      "architecture": "tinygpt",
+      "tokenizer_name": "togethercomputer/LLaMA-2-7B-32K",
+      "hidden_size": 256,
+      "num_hidden_layers": 8,
+      "num_attention_heads": 8,
+      "intermediate_size": 1024,
+      "activation_function": "gelu_new",
+      "max_position_embeddings": 2048,
+      "layer_norm_epsilon": 1e-05,
+      "resid_pdrop": 0.0,
+      "embd_pdrop": 0.0,
+      "attn_pdrop": 0.0,
+      "tie_word_embeddings": true,
+      "bias": false
+    },
+    "world_size": 1,
+    "total_workers": 4,
+    "dataset_metadata": {
+      "dataset": {
+        "key": "mc4",
+        "name": "allenai/c4",
+        "resolved_commit_sha": "1588ec454efa1a09f29cd18ddd04fe05fc8653a2",
+        "languages": [
+          "en",
+          "fr",
+          "de",
+          "es"
+        ]
+      },
+      "tokenizer": {
+        "name": "togethercomputer/LLaMA-2-7B-32K",
+        "resolved_commit_sha": "46c24bb5aef59722fa7aa6d75e832afd1d64b980",
+        "vocab_size": 32000,
+        "eos_token_id": 2
+      },
+      "reproducibility": {
+        "seed": 42,
+        "buffer_size": 10000,
+        "sequence_length": 128,
+        "single_document_sequences": true,
+        "cross_split_sha256_deduplicated": true,
+        "source_splits_file": "source_splits.json",
+        "checksums_file": "checksums.sha256"
+      },
+      "tokens": {
+        "per_language": {
+          "train": 3072000,
+          "valid": 500000,
+          "test": 500000
+        },
+        "total": {
+          "train": 12288000,
+          "valid": 2000000,
+          "test": 2000000
+        }
+      },
+      "partition_manifests": {
+        "train_iid": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual/partitions_train_iid_w4.json",
+        "valid_iid": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual/partitions_valid_iid_w4.json",
+        "train_noniid_language": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual/partitions_train_noniid_language_w4.json",
+        "valid_noniid_language": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual/partitions_valid_noniid_language_w4.json"
+      }
+    },
+    "resolved_partition_info": {
+      "strategy": "iid",
+      "num_workers": 4,
+      "token_budget": 12288000,
+      "sequence_length": 128,
+      "metadata": {
+        "multilingual": true,
+        "languages": [
+          "en",
+          "fr",
+          "de",
+          "es"
+        ],
+        "language_distribution": {
+          "worker_0": {
+            "en": 0.25,
+            "fr": 0.25,
+            "de": 0.25,
+            "es": 0.25
+          },
+          "worker_1": {
+            "en": 0.25,
+            "fr": 0.25,
+            "de": 0.25,
+            "es": 0.25
+          },
+          "worker_2": {
+            "en": 0.25,
+            "fr": 0.25,
+            "de": 0.25,
+            "es": 0.25
+          },
+          "worker_3": {
+            "en": 0.25,
+            "fr": 0.25,
+            "de": 0.25,
+            "es": 0.25
+          }
+        },
+        "shard_files": [
+          {
+            "language": "en",
+            "name": "train_00_en.npy",
+            "tokens": 3072000
+          },
+          {
+            "language": "fr",
+            "name": "train_01_fr.npy",
+            "tokens": 3072000
+          },
+          {
+            "language": "de",
+            "name": "train_02_de.npy",
+            "tokens": 3072000
+          },
+          {
+            "language": "es",
+            "name": "train_03_es.npy",
+            "tokens": 3072000
+          }
+        ]
+      }
+    }
+  }
+}
+
+======================================================================
+Experiment: mc4_15m_diloco_noniid_language_w4_h30_r100_s42
+{
+  "updated_at": "2026-11-07T08:35:04.668736+00:00",
+  "num_logged_steps": 100,
+  "best_valid_loss": 6.127884725088714,
+  "best_valid_round": 99,
+  "final_metrics": {
+    "step": 99,
+    "timestamp": "2026-11-07T08:35:03.972590+00:00",
+    "train/loss_after_inner": 5.897924423217773,
+    "train/perplexity": 364.28059032283204,
+    "train/loss_after_gather": 5.961036205291748,
+    "train/perplexity_after_gather": 388.0119760641918,
+    "train/total_tokens": 122880,
+    "train/batch_count": 120,
+    "train/outer_learning_rate": 0.7,
+    "train/inner_learning_rate": 0.00030000000000000003,
+    "train/tokens_per_sec": 25630.20358593969,
+    "train/window": 99,
+    "eval/valid_loss": 6.127884725088714,
+    "eval/valid_perplexity": 458.4653540193774,
+    "eval/valid_tokens": 1999872,
+    "eval/valid_batches": 1956,
+    "eval/best_valid_loss": 6.127884725088714,
+    "eval/best_valid_round": 99,
+    "eval/valid_loss_en": 6.528822908875153,
+    "eval/valid_perplexity_en": 684.5919099783507,
+    "eval/valid_tokens_en": 499968,
+    "eval/valid_loss_fr": 5.895269333614304,
+    "eval/valid_perplexity_fr": 363.31467557725426,
+    "eval/valid_tokens_fr": 499968,
+    "eval/valid_loss_de": 6.2614727496368365,
+    "eval/valid_perplexity_de": 523.9900783194084,
+    "eval/valid_tokens_de": 499968,
+    "eval/valid_loss_es": 5.825973908228564,
+    "eval/valid_perplexity_es": 338.9911186038535,
+    "eval/valid_tokens_es": 499968,
+    "eval/val_loss_equal_language": 6.127884725088714,
+    "eval/local_worker_0_val_loss": 6.502714505224872,
+    "eval/local_worker_0_val_tokens": 499968,
+    "eval/local_worker_1_val_loss": 5.800609404811586,
+    "eval/local_worker_1_val_tokens": 499968,
+    "eval/local_worker_2_val_loss": 6.187697009318689,
+    "eval/local_worker_2_val_tokens": 499968,
+    "eval/local_worker_3_val_loss": 5.696441654778697,
+    "eval/local_worker_3_val_tokens": 499968,
+    "eval/local_mean_worker_val_loss": 6.046865643533462,
+    "eval/local_std_worker_val_loss": 0.320574002883317,
+    "eval/worker_0_val_loss": 6.527164769806501,
+    "eval/worker_0_val_tokens": 499968,
+    "eval/worker_1_val_loss": 5.894520670845952,
+    "eval/worker_1_val_tokens": 499968,
+    "eval/worker_2_val_loss": 6.26124489234269,
+    "eval/worker_2_val_tokens": 499968,
+    "eval/worker_3_val_loss": 5.825914291272622,
+    "eval/worker_3_val_tokens": 499968,
+    "eval/mean_worker_val_loss": 6.127211156066941,
+    "eval/std_worker_val_loss": 0.2841005976105276
+  },
+  "config": {
+    "config": "configs/experiment.yaml",
+    "run_name": "mc4_15m_diloco_noniid_language_w4_h30_r100_s42",
+    "run_id": null,
+    "project": "diloco_merge_mc4_15m",
+    "seed": 42,
+    "method": "diloco",
+    "strategy": "diloco_baseline",
+    "inner_outer_strategy": "diloco",
+    "inner_optimizer": "adamw",
+    "outer_optimizer": "nesterov",
+    "num_workers": 4,
+    "virtual_workers": 4,
+    "inner_learning_rate": 0.003,
+    "inner_steps": 30,
+    "inner_beta2": 0.95,
+    "outer_learning_rate": 0.7,
+    "outer_momentum": 0.9,
+    "outer_nesterov": true,
+    "outer_weight_decay": 0.0,
+    "use_outer_scheduler": false,
+    "outer_warmup_steps": null,
+    "weight_decay": 0.1,
+    "warmup_steps": 0.1,
+    "max_steps": 100,
+    "batch_size": 8,
+    "micro_batch_size": 8,
+    "sequence_length": 128,
+    "dataset_key": "mc4",
+    "dataset_name": "allenai/c4",
+    "dataset_revision": "1588ec454efa1a09f29cd18ddd04fe05fc8653a2",
+    "shards_path": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual",
+    "token_budget": 12288000,
+    "shard_token_size": 12288000,
+    "pin_data_to_gpu": false,
+    "partition_strategy": "noniid_language",
+    "partition_file": null,
+    "save_partitions": true,
+    "eval_partition_file": null,
+    "eval_frequency": 10,
+    "val_token_budget": 2000000,
+    "per_worker_eval": true,
+    "save_path": "/lustre/hdd/LAS/jannesar-lab/aaasif/diloco_merge/outputs/mc4_15m_diloco_noniid_language_w4_h30_r100_s42",
+    "checkpoint_frequency": 50,
+    "load_checkpoint": null,
+    "resume_from_checkpoint": false,
+    "save_final_diagnostics": false,
+    "model_architecture": "tinygpt",
+    "model_size": "15M",
+    "hparams_file": "models/configs/15M_model_hparams.json",
+    "tokenizer_name": "togethercomputer/LLaMA-2-7B-32K",
+    "tokenizer_revision": "46c24bb5aef59722fa7aa6d75e832afd1d64b980",
+    "model_hparams": {},
+    "torchtitan_init": false,
+    "use_compile": true,
+    "debug": false,
+    "trace": false,
+    "log_wandb": true,
+    "sparsity": 0.0,
+    "prune_method": "magnitude",
+    "prune_dimension": "all",
+    "rescale_pruned": false,
+    "ties_disjoint": false,
+    "tsv_singular_ratio": null,
+    "tsv_decorrelate": true,
+    "isoc_orthogonalize_object": "gradient",
+    "isocts_common_space_fraction": 0.8,
+    "isoc_exclude_keys": [
+      "embed_tokens",
+      "lm_head"
+    ],
+    "isocts_exclude_keys": [
+      "embed_tokens",
+      "lm_head"
+    ],
+    "test_tokens": 2000000,
+    "languages": [
+      "en",
+      "fr",
+      "de",
+      "es"
+    ],
+    "resolved_model_hparams": {
+      "architecture": "tinygpt",
+      "tokenizer_name": "togethercomputer/LLaMA-2-7B-32K",
+      "hidden_size": 256,
+      "num_hidden_layers": 8,
+      "num_attention_heads": 8,
+      "intermediate_size": 1024,
+      "activation_function": "gelu_new",
+      "max_position_embeddings": 2048,
+      "layer_norm_epsilon": 1e-05,
+      "resid_pdrop": 0.0,
+      "embd_pdrop": 0.0,
+      "attn_pdrop": 0.0,
+      "tie_word_embeddings": true,
+      "bias": false
+    },
+    "world_size": 1,
+    "total_workers": 4,
+    "dataset_metadata": {
+      "dataset": {
+        "key": "mc4",
+        "name": "allenai/c4",
+        "resolved_commit_sha": "1588ec454efa1a09f29cd18ddd04fe05fc8653a2",
+        "languages": [
+          "en",
+          "fr",
+          "de",
+          "es"
+        ]
+      },
+      "tokenizer": {
+        "name": "togethercomputer/LLaMA-2-7B-32K",
+        "resolved_commit_sha": "46c24bb5aef59722fa7aa6d75e832afd1d64b980",
+        "vocab_size": 32000,
+        "eos_token_id": 2
+      },
+      "reproducibility": {
+        "seed": 42,
+        "buffer_size": 10000,
+        "sequence_length": 128,
+        "single_document_sequences": true,
+        "cross_split_sha256_deduplicated": true,
+        "source_splits_file": "source_splits.json",
+        "checksums_file": "checksums.sha256"
+      },
+      "tokens": {
+        "per_language": {
+          "train": 3072000,
+          "valid": 500000,
+          "test": 500000
+        },
+        "total": {
+          "train": 12288000,
+          "valid": 2000000,
+          "test": 2000000
+        }
+      },
+      "partition_manifests": {
+        "train_iid": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual/partitions_train_iid_w4.json",
+        "valid_iid": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual/partitions_valid_iid_w4.json",
+        "train_noniid_language": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual/partitions_train_noniid_language_w4.json",
+        "valid_noniid_language": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual/partitions_valid_noniid_language_w4.json"
+      }
+    },
+    "resolved_partition_info": {
+      "strategy": "noniid_language",
+      "num_workers": 4,
+      "token_budget": 12288000,
+      "sequence_length": 128,
+      "metadata": {
+        "multilingual": true,
+        "languages": [
+          "en",
+          "fr",
+          "de",
+          "es"
+        ],
+        "language_distribution": {
+          "worker_0": {
+            "en": 1.0,
+            "fr": 0.0,
+            "de": 0.0,
+            "es": 0.0
+          },
+          "worker_1": {
+            "en": 0.0,
+            "fr": 1.0,
+            "de": 0.0,
+            "es": 0.0
+          },
+          "worker_2": {
+            "en": 0.0,
+            "fr": 0.0,
+            "de": 1.0,
+            "es": 0.0
+          },
+          "worker_3": {
+            "en": 0.0,
+            "fr": 0.0,
+            "de": 0.0,
+            "es": 1.0
+          }
+        },
+        "shard_files": [
+          {
+            "language": "en",
+            "name": "train_00_en.npy",
+            "tokens": 3072000
+          },
+          {
+            "language": "fr",
+            "name": "train_01_fr.npy",
+            "tokens": 3072000
+          },
+          {
+            "language": "de",
+            "name": "train_02_de.npy",
+            "tokens": 3072000
+          },
+          {
+            "language": "es",
+            "name": "train_03_es.npy",
+            "tokens": 3072000
+          }
+        ]
+      }
+    }
+  }
+}
+
+======================================================================
+Experiment: mc4_15m_isoloco_iid_w4_h30_r100_s42
+{
+  "updated_at": "2026-11-07T08:31:14.008051+00:00",
+  "num_logged_steps": 100,
+  "best_valid_loss": 5.7296932621363545,
+  "best_valid_round": 99,
+  "final_metrics": {
+    "step": 99,
+    "timestamp": "2026-11-07T08:31:13.439298+00:00",
+    "train/loss_after_inner": 5.3974080085754395,
+    "train/perplexity": 220.83327578045797,
+    "train/loss_after_gather": 5.374340057373047,
+    "train/perplexity_after_gather": 215.79741139720267,
+    "train/total_tokens": 122880,
+    "train/batch_count": 120,
+    "train/outer_learning_rate": 1.5,
+    "train/inner_learning_rate": 0.00030000000000000003,
+    "train/tokens_per_sec": 22936.892675458203,
+    "train/window": 99,
+    "eval/valid_loss": 5.7296932621363545,
+    "eval/valid_perplexity": 307.8748170286034,
+    "eval/valid_tokens": 1999872,
+    "eval/valid_batches": 1956,
+    "eval/best_valid_loss": 5.7296932621363545,
+    "eval/best_valid_round": 99,
+    "eval/valid_loss_en": 6.543727110302638,
+    "eval/valid_perplexity_en": 694.8716208512457,
+    "eval/valid_tokens_en": 499968,
+    "eval/valid_loss_fr": 5.378908898362854,
+    "eval/valid_perplexity_fr": 216.78561120077458,
+    "eval/valid_tokens_fr": 499968,
+    "eval/valid_loss_de": 5.767630592469247,
+    "eval/valid_perplexity_de": 319.7791471836837,
+    "eval/valid_tokens_de": 499968,
+    "eval/valid_loss_es": 5.228506447410681,
+    "eval/valid_perplexity_es": 186.51402688041276,
+    "eval/valid_tokens_es": 499968,
+    "eval/val_loss_equal_language": 5.7296932621363545,
+    "eval/local_worker_0_val_loss": 5.618622356262363,
+    "eval/local_worker_0_val_tokens": 499712,
+    "eval/local_worker_1_val_loss": 5.7741578900423205,
+    "eval/local_worker_1_val_tokens": 499712,
+    "eval/local_worker_2_val_loss": 5.703185587632851,
+    "eval/local_worker_2_val_tokens": 499712,
+    "eval/local_worker_3_val_loss": 5.74401508784685,
+    "eval/local_worker_3_val_tokens": 499712,
+    "eval/local_mean_worker_val_loss": 5.709995230446096,
+    "eval/local_std_worker_val_loss": 0.0584584702072097,
+    "eval/worker_0_val_loss": 5.634729563212786,
+    "eval/worker_0_val_tokens": 499712,
+    "eval/worker_1_val_loss": 5.789739981782241,
+    "eval/worker_1_val_tokens": 499712,
+    "eval/worker_2_val_loss": 5.730947903922347,
+    "eval/worker_2_val_tokens": 499712,
+    "eval/worker_3_val_loss": 5.764195963496068,
+    "eval/worker_3_val_tokens": 499712,
+    "eval/mean_worker_val_loss": 5.729903353103361,
+    "eval/std_worker_val_loss": 0.058769776730367464
+  },
+  "config": {
+    "config": "configs/experiment.yaml",
+    "run_name": "mc4_15m_isoloco_iid_w4_h30_r100_s42",
+    "run_id": null,
+    "project": "diloco_merge_mc4_15m",
+    "seed": 42,
+    "method": "isoloco",
+    "strategy": "isoloco",
+    "inner_outer_strategy": "diloco",
+    "inner_optimizer": "adamw",
+    "outer_optimizer": "isocloco",
+    "num_workers": 4,
+    "virtual_workers": 4,
+    "inner_learning_rate": 0.003,
+    "inner_steps": 30,
+    "inner_beta2": 0.95,
+    "outer_learning_rate": 1.5,
+    "outer_momentum": 0.8,
+    "outer_nesterov": true,
+    "outer_weight_decay": 0.0,
+    "use_outer_scheduler": false,
+    "outer_warmup_steps": null,
+    "weight_decay": 0.1,
+    "warmup_steps": 0.1,
+    "max_steps": 100,
+    "batch_size": 8,
+    "micro_batch_size": 8,
+    "sequence_length": 128,
+    "dataset_key": "mc4",
+    "dataset_name": "allenai/c4",
+    "dataset_revision": "1588ec454efa1a09f29cd18ddd04fe05fc8653a2",
+    "shards_path": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual",
+    "token_budget": 12288000,
+    "shard_token_size": 12288000,
+    "pin_data_to_gpu": false,
+    "partition_strategy": "iid",
+    "partition_file": null,
+    "save_partitions": true,
+    "eval_partition_file": null,
+    "eval_frequency": 10,
+    "val_token_budget": 2000000,
+    "per_worker_eval": true,
+    "save_path": "/lustre/hdd/LAS/jannesar-lab/aaasif/diloco_merge/outputs/mc4_15m_isoloco_iid_w4_h30_r100_s42",
+    "checkpoint_frequency": 50,
+    "load_checkpoint": null,
+    "resume_from_checkpoint": false,
+    "save_final_diagnostics": false,
+    "model_architecture": "tinygpt",
+    "model_size": "15M",
+    "hparams_file": "models/configs/15M_model_hparams.json",
+    "tokenizer_name": "togethercomputer/LLaMA-2-7B-32K",
+    "tokenizer_revision": "46c24bb5aef59722fa7aa6d75e832afd1d64b980",
+    "model_hparams": {},
+    "torchtitan_init": false,
+    "use_compile": true,
+    "debug": false,
+    "trace": false,
+    "log_wandb": true,
+    "sparsity": 0.0,
+    "prune_method": "magnitude",
+    "prune_dimension": "all",
+    "rescale_pruned": false,
+    "ties_disjoint": false,
+    "tsv_singular_ratio": null,
+    "tsv_decorrelate": true,
+    "isoc_orthogonalize_object": "gradient",
+    "isocts_common_space_fraction": 0.8,
+    "isoc_exclude_keys": [
+      "embed_tokens",
+      "wpe",
+      "lm_head"
+    ],
+    "isocts_exclude_keys": [
+      "embed_tokens",
+      "lm_head"
+    ],
+    "test_tokens": 2000000,
+    "languages": [
+      "en",
+      "fr",
+      "de",
+      "es"
+    ],
+    "resolved_model_hparams": {
+      "architecture": "tinygpt",
+      "tokenizer_name": "togethercomputer/LLaMA-2-7B-32K",
+      "hidden_size": 256,
+      "num_hidden_layers": 8,
+      "num_attention_heads": 8,
+      "intermediate_size": 1024,
+      "activation_function": "gelu_new",
+      "max_position_embeddings": 2048,
+      "layer_norm_epsilon": 1e-05,
+      "resid_pdrop": 0.0,
+      "embd_pdrop": 0.0,
+      "attn_pdrop": 0.0,
+      "tie_word_embeddings": true,
+      "bias": false
+    },
+    "world_size": 1,
+    "total_workers": 4,
+    "dataset_metadata": {
+      "dataset": {
+        "key": "mc4",
+        "name": "allenai/c4",
+        "resolved_commit_sha": "1588ec454efa1a09f29cd18ddd04fe05fc8653a2",
+        "languages": [
+          "en",
+          "fr",
+          "de",
+          "es"
+        ]
+      },
+      "tokenizer": {
+        "name": "togethercomputer/LLaMA-2-7B-32K",
+        "resolved_commit_sha": "46c24bb5aef59722fa7aa6d75e832afd1d64b980",
+        "vocab_size": 32000,
+        "eos_token_id": 2
+      },
+      "reproducibility": {
+        "seed": 42,
+        "buffer_size": 10000,
+        "sequence_length": 128,
+        "single_document_sequences": true,
+        "cross_split_sha256_deduplicated": true,
+        "source_splits_file": "source_splits.json",
+        "checksums_file": "checksums.sha256"
+      },
+      "tokens": {
+        "per_language": {
+          "train": 3072000,
+          "valid": 500000,
+          "test": 500000
+        },
+        "total": {
+          "train": 12288000,
+          "valid": 2000000,
+          "test": 2000000
+        }
+      },
+      "partition_manifests": {
+        "train_iid": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual/partitions_train_iid_w4.json",
+        "valid_iid": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual/partitions_valid_iid_w4.json",
+        "train_noniid_language": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual/partitions_train_noniid_language_w4.json",
+        "valid_noniid_language": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual/partitions_valid_noniid_language_w4.json"
+      }
+    },
+    "resolved_partition_info": {
+      "strategy": "iid",
+      "num_workers": 4,
+      "token_budget": 12288000,
+      "sequence_length": 128,
+      "metadata": {
+        "multilingual": true,
+        "languages": [
+          "en",
+          "fr",
+          "de",
+          "es"
+        ],
+        "language_distribution": {
+          "worker_0": {
+            "en": 0.25,
+            "fr": 0.25,
+            "de": 0.25,
+            "es": 0.25
+          },
+          "worker_1": {
+            "en": 0.25,
+            "fr": 0.25,
+            "de": 0.25,
+            "es": 0.25
+          },
+          "worker_2": {
+            "en": 0.25,
+            "fr": 0.25,
+            "de": 0.25,
+            "es": 0.25
+          },
+          "worker_3": {
+            "en": 0.25,
+            "fr": 0.25,
+            "de": 0.25,
+            "es": 0.25
+          }
+        },
+        "shard_files": [
+          {
+            "language": "en",
+            "name": "train_00_en.npy",
+            "tokens": 3072000
+          },
+          {
+            "language": "fr",
+            "name": "train_01_fr.npy",
+            "tokens": 3072000
+          },
+          {
+            "language": "de",
+            "name": "train_02_de.npy",
+            "tokens": 3072000
+          },
+          {
+            "language": "es",
+            "name": "train_03_es.npy",
+            "tokens": 3072000
+          }
+        ]
+      }
+    }
+  }
+}
+
+======================================================================
+Experiment: mc4_15m_isoloco_noniid_language_w4_h30_r100_s42
+{
+  "updated_at": "2026-11-07T08:39:47.251854+00:00",
+  "num_logged_steps": 100,
+  "best_valid_loss": 5.852386064793108,
+  "best_valid_round": 99,
+  "final_metrics": {
+    "step": 99,
+    "timestamp": "2026-11-07T08:39:46.695719+00:00",
+    "train/loss_after_inner": 5.509064674377441,
+    "train/perplexity": 246.92006836024265,
+    "train/loss_after_gather": 5.688167572021484,
+    "train/perplexity_after_gather": 295.35191336272237,
+    "train/total_tokens": 122880,
+    "train/batch_count": 120,
+    "train/outer_learning_rate": 1.5,
+    "train/inner_learning_rate": 0.00030000000000000003,
+    "train/tokens_per_sec": 22867.37573322731,
+    "train/window": 99,
+    "eval/valid_loss": 5.852386064793108,
+    "eval/valid_perplexity": 348.06389345124524,
+    "eval/valid_tokens": 1999872,
+    "eval/valid_batches": 1956,
+    "eval/best_valid_loss": 5.852386064793108,
+    "eval/best_valid_round": 99,
+    "eval/valid_loss_en": 6.388540262817054,
+    "eval/valid_perplexity_en": 594.9874202094836,
+    "eval/valid_tokens_en": 499968,
+    "eval/valid_loss_fr": 5.526467219536816,
+    "eval/valid_perplexity_fr": 251.25471353530014,
+    "eval/valid_tokens_fr": 499968,
+    "eval/valid_loss_de": 5.9904588068441065,
+    "eval/valid_perplexity_de": 399.5979061293412,
+    "eval/valid_tokens_de": 499968,
+    "eval/valid_loss_es": 5.504077969974453,
+    "eval/valid_perplexity_es": 245.69181597921028,
+    "eval/valid_tokens_es": 499968,
+    "eval/val_loss_equal_language": 5.852386064793107,
+    "eval/local_worker_0_val_loss": 6.322567133815742,
+    "eval/local_worker_0_val_tokens": 499968,
+    "eval/local_worker_1_val_loss": 5.402687628576361,
+    "eval/local_worker_1_val_tokens": 499968,
+    "eval/local_worker_2_val_loss": 5.812397412239652,
+    "eval/local_worker_2_val_tokens": 499968,
+    "eval/local_worker_3_val_loss": 5.301306804996327,
+    "eval/local_worker_3_val_tokens": 499968,
+    "eval/local_mean_worker_val_loss": 5.70973974490702,
+    "eval/local_std_worker_val_loss": 0.4022419899159235,
+    "eval/worker_0_val_loss": 6.38712475489985,
+    "eval/worker_0_val_tokens": 499968,
+    "eval/worker_1_val_loss": 5.525395258316477,
+    "eval/worker_1_val_tokens": 499968,
+    "eval/worker_2_val_loss": 5.990281207917414,
+    "eval/worker_2_val_tokens": 499968,
+    "eval/worker_3_val_loss": 5.504110845320064,
+    "eval/worker_3_val_tokens": 499968,
+    "eval/mean_worker_val_loss": 5.8517280166134515,
+    "eval/std_worker_val_loss": 0.3650949948657045
+  },
+  "config": {
+    "config": "configs/experiment.yaml",
+    "run_name": "mc4_15m_isoloco_noniid_language_w4_h30_r100_s42",
+    "run_id": null,
+    "project": "diloco_merge_mc4_15m",
+    "seed": 42,
+    "method": "isoloco",
+    "strategy": "isoloco",
+    "inner_outer_strategy": "diloco",
+    "inner_optimizer": "adamw",
+    "outer_optimizer": "isocloco",
+    "num_workers": 4,
+    "virtual_workers": 4,
+    "inner_learning_rate": 0.003,
+    "inner_steps": 30,
+    "inner_beta2": 0.95,
+    "outer_learning_rate": 1.5,
+    "outer_momentum": 0.8,
+    "outer_nesterov": true,
+    "outer_weight_decay": 0.0,
+    "use_outer_scheduler": false,
+    "outer_warmup_steps": null,
+    "weight_decay": 0.1,
+    "warmup_steps": 0.1,
+    "max_steps": 100,
+    "batch_size": 8,
+    "micro_batch_size": 8,
+    "sequence_length": 128,
+    "dataset_key": "mc4",
+    "dataset_name": "allenai/c4",
+    "dataset_revision": "1588ec454efa1a09f29cd18ddd04fe05fc8653a2",
+    "shards_path": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual",
+    "token_budget": 12288000,
+    "shard_token_size": 12288000,
+    "pin_data_to_gpu": false,
+    "partition_strategy": "noniid_language",
+    "partition_file": null,
+    "save_partitions": true,
+    "eval_partition_file": null,
+    "eval_frequency": 10,
+    "val_token_budget": 2000000,
+    "per_worker_eval": true,
+    "save_path": "/lustre/hdd/LAS/jannesar-lab/aaasif/diloco_merge/outputs/mc4_15m_isoloco_noniid_language_w4_h30_r100_s42",
+    "checkpoint_frequency": 50,
+    "load_checkpoint": null,
+    "resume_from_checkpoint": false,
+    "save_final_diagnostics": false,
+    "model_architecture": "tinygpt",
+    "model_size": "15M",
+    "hparams_file": "models/configs/15M_model_hparams.json",
+    "tokenizer_name": "togethercomputer/LLaMA-2-7B-32K",
+    "tokenizer_revision": "46c24bb5aef59722fa7aa6d75e832afd1d64b980",
+    "model_hparams": {},
+    "torchtitan_init": false,
+    "use_compile": true,
+    "debug": false,
+    "trace": false,
+    "log_wandb": true,
+    "sparsity": 0.0,
+    "prune_method": "magnitude",
+    "prune_dimension": "all",
+    "rescale_pruned": false,
+    "ties_disjoint": false,
+    "tsv_singular_ratio": null,
+    "tsv_decorrelate": true,
+    "isoc_orthogonalize_object": "gradient",
+    "isocts_common_space_fraction": 0.8,
+    "isoc_exclude_keys": [
+      "embed_tokens",
+      "wpe",
+      "lm_head"
+    ],
+    "isocts_exclude_keys": [
+      "embed_tokens",
+      "lm_head"
+    ],
+    "test_tokens": 2000000,
+    "languages": [
+      "en",
+      "fr",
+      "de",
+      "es"
+    ],
+    "resolved_model_hparams": {
+      "architecture": "tinygpt",
+      "tokenizer_name": "togethercomputer/LLaMA-2-7B-32K",
+      "hidden_size": 256,
+      "num_hidden_layers": 8,
+      "num_attention_heads": 8,
+      "intermediate_size": 1024,
+      "activation_function": "gelu_new",
+      "max_position_embeddings": 2048,
+      "layer_norm_epsilon": 1e-05,
+      "resid_pdrop": 0.0,
+      "embd_pdrop": 0.0,
+      "attn_pdrop": 0.0,
+      "tie_word_embeddings": true,
+      "bias": false
+    },
+    "world_size": 1,
+    "total_workers": 4,
+    "dataset_metadata": {
+      "dataset": {
+        "key": "mc4",
+        "name": "allenai/c4",
+        "resolved_commit_sha": "1588ec454efa1a09f29cd18ddd04fe05fc8653a2",
+        "languages": [
+          "en",
+          "fr",
+          "de",
+          "es"
+        ]
+      },
+      "tokenizer": {
+        "name": "togethercomputer/LLaMA-2-7B-32K",
+        "resolved_commit_sha": "46c24bb5aef59722fa7aa6d75e832afd1d64b980",
+        "vocab_size": 32000,
+        "eos_token_id": 2
+      },
+      "reproducibility": {
+        "seed": 42,
+        "buffer_size": 10000,
+        "sequence_length": 128,
+        "single_document_sequences": true,
+        "cross_split_sha256_deduplicated": true,
+        "source_splits_file": "source_splits.json",
+        "checksums_file": "checksums.sha256"
+      },
+      "tokens": {
+        "per_language": {
+          "train": 3072000,
+          "valid": 500000,
+          "test": 500000
+        },
+        "total": {
+          "train": 12288000,
+          "valid": 2000000,
+          "test": 2000000
+        }
+      },
+      "partition_manifests": {
+        "train_iid": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual/partitions_train_iid_w4.json",
+        "valid_iid": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual/partitions_valid_iid_w4.json",
+        "train_noniid_language": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual/partitions_train_noniid_language_w4.json",
+        "valid_noniid_language": "/lustre/hdd/LAS/jannesar-lab/aaasif/datasets/mc4_15m_multilingual/partitions_valid_noniid_language_w4.json"
+      }
+    },
+    "resolved_partition_info": {
+      "strategy": "noniid_language",
+      "num_workers": 4,
+      "token_budget": 12288000,
+      "sequence_length": 128,
+      "metadata": {
+        "multilingual": true,
+        "languages": [
+          "en",
+          "fr",
+          "de",
+          "es"
+        ],
+        "language_distribution": {
+          "worker_0": {
+            "en": 1.0,
+            "fr": 0.0,
+            "de": 0.0,
+            "es": 0.0
+          },
+          "worker_1": {
+            "en": 0.0,
+            "fr": 1.0,
+            "de": 0.0,
+            "es": 0.0
+          },
+          "worker_2": {
+            "en": 0.0,
+            "fr": 0.0,
+            "de": 1.0,
+            "es": 0.0
+          },
+          "worker_3": {
+            "en": 0.0,
+            "fr": 0.0,
+            "de": 0.0,
+            "es": 1.0
+          }
+        },
+        "shard_files": [
+          {
+            "language": "en",
+            "name": "train_00_en.npy",
+            "tokens": 3072000
+          },
+          {
+            "language": "fr",
+            "name": "train_01_fr.npy",
+            "tokens": 3072000
+          },
+          {
+            "language": "de",
+            "name": "train_02_de.npy",
+            "tokens": 3072000
+          },
+          {
+            "language": "es",
+            "name": "train_03_es.npy",
+            "tokens": 3072000
+          }
+        ]
+      }
+    }
+  }
+}

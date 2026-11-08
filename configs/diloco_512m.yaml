@@ -1,0 +1,33 @@
+# DiLoCo Baseline — 512M model, 8 workers (H=30)
+experiment:
+  run_name: diloco_512m_r8
+  project: isoloco_512M_main
+
+dataset:
+  token_budget: 10247976960
+
+model:
+  size: 512M
+  hparams_file: models/configs/512M_model_hparams.json
+
+workers:
+  num_workers: 8
+
+training:
+  inner_steps: 30
+  batch_size: 128
+  micro_batch_size: 8
+
+inner_optimizer:
+  type: adamw
+  learning_rate: 0.000691
+  beta2: 0.95
+  weight_decay: 0.1
+  warmup_steps: 0.1
+
+method:
+  strategy: diloco_baseline
+  outer_optimizer: nesterov
+  learning_rate: 0.7
+  momentum: 0.9
+  nesterov: true

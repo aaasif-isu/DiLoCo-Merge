@@ -1,0 +1,16 @@
+{
+  "architecture": "tinygpt",
+  "tokenizer_name": "togethercomputer/LLaMA-2-7B-32K",
+  "hidden_size": 256,
+  "num_hidden_layers": 8,
+  "num_attention_heads": 8,
+  "intermediate_size": 1024,
+  "activation_function": "gelu_new",
+  "max_position_embeddings": 2048,
+  "layer_norm_epsilon": 1e-5,
+  "resid_pdrop": 0.0,
+  "embd_pdrop": 0.0,
+  "attn_pdrop": 0.0,
+  "tie_word_embeddings": true,
+  "bias": false
+}

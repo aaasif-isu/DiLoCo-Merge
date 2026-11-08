@@ -1,0 +1,29 @@
+# TSVLoCo (Task Singular Vectors) — 178M model, 8 workers (H=30)
+experiment:
+  run_name: tsv_178m_r8
+  project: isoloco_178M_merging
+
+model:
+  size: 178M
+  hparams_file: models/configs/178M_model_hparams.json
+
+workers:
+  num_workers: 8
+
+training:
+  inner_steps: 30
+  batch_size: 32
+  micro_batch_size: 32
+
+inner_optimizer:
+  type: adamw
+  learning_rate: 0.00276
+  beta2: 0.95
+  weight_decay: 0.1
+  warmup_steps: 0.1
+
+method:
+  strategy: tsvloco
+  outer_optimizer: tsvloco
+  learning_rate: 0.6
+  tsv_decorrelate: true
