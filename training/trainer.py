@@ -138,6 +138,7 @@ class DistributedModelTrainer:
     """Orchestrates synchronous distributed language model training and aggregation."""
 
     def __init__(self, config: Optional[Any] = None):
+        self.process_start_time = time.perf_counter()
         self.config = config if config is not None else load_experiment_config()
 
         if getattr(self.config, "debug", False):
@@ -813,6 +814,7 @@ class DistributedModelTrainer:
 
             val_metrics = None
             worker_val_metrics: Dict[str, Any] = {}
+            eval_elapsed_sec: Optional[float] = None
             if is_eval_window:
                 with Timer("validation"):
                     val_metrics = self.evaluate()
@@ -831,6 +833,7 @@ class DistributedModelTrainer:
                             if self.world_size > 1
                             else None,
                         )
+                eval_elapsed_sec = time.perf_counter() - self.process_start_time
 
             if self.global_rank == 0:
                 if self.config.debug:
@@ -881,6 +884,13 @@ class DistributedModelTrainer:
                         self.best_loss = val_metrics["val_loss"]
                         self.best_round = window
 
+                    elapsed_s = (
+                        float(eval_elapsed_sec)
+                        if eval_elapsed_sec is not None
+                        else float(time.perf_counter() - self.process_start_time)
+                    )
+                    elapsed_m = elapsed_s / 60.0
+
                     step_log_dict.update(
                         {
                             "eval/valid_loss": val_metrics["val_loss"],
@@ -889,6 +899,10 @@ class DistributedModelTrainer:
                             "eval/valid_batches": val_metrics["val_batches"],
                             "eval/best_valid_loss": self.best_loss,
                             "eval/best_valid_round": self.best_round,
+                            "eval/elapsed_sec": elapsed_s,
+                            "eval/elapsed_min": elapsed_m,
+                            "eval/elapsed_time_sec": elapsed_s,
+                            "eval/elapsed_time_min": elapsed_m,
                         }
                     )
                     for k, v in val_metrics.items():
@@ -926,12 +940,15 @@ class DistributedModelTrainer:
             self.global_step += 1
 
         if self.global_rank == 0:
+            total_elapsed_s = float(time.perf_counter() - self.process_start_time)
             self.tracker.save_summary(
                 extra_summary={
                     "best_valid_loss": self.best_loss
                     if self.best_loss < float("inf")
                     else None,
                     "best_valid_round": self.best_round,
+                    "total_elapsed_sec": total_elapsed_s,
+                    "total_elapsed_min": total_elapsed_s / 60.0,
                 }
             )
 

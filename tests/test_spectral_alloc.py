@@ -692,12 +692,18 @@ class TestSpectralAllocDecoupled(unittest.TestCase):
         P_t_2d = G_sel_2d + mu * B_t_2d
         theta_next_2d = theta_2d.detach() - lr * P_t_2d
 
+        B_t_1d = mu * B_prev_1d + G_rest_1d
+        P_t_1d = G_rest_1d + mu * B_t_1d
+        theta_next_1d = theta_1d.detach() - lr * P_t_1d
+
         named_params = [("w", theta_2d), ("b", theta_1d)]
         g_tilde_ones = {0: G_iso_2d, 1: G_rest_1d}
+        grad_rest = {1: G_rest_1d}
         a_scale, theta_hat = compute_decoupled_nesterov_scaling_and_lookahead(
             named_params=named_params,
             momentum_buffers=[B_prev_2d, B_prev_1d],
             g_tilde_ones=g_tilde_ones,
+            grad_rest=grad_rest,
             lr=lr,
             momentum=mu,
             nesterov=True,
@@ -708,12 +714,18 @@ class TestSpectralAllocDecoupled(unittest.TestCase):
             theta_2d.detach() - lr * (mu**2) * B_prev_2d - lr * mu * G_iso_2d
         )
         expected_hat_1d = (
-            theta_1d.detach() - lr * (mu**2) * B_prev_1d - lr * mu * G_rest_1d
+            theta_1d.detach()
+            - lr * (mu**2) * B_prev_1d
+            - lr * mu * G_rest_1d
+            - lr * G_rest_1d
         )
         self.assertTrue(torch.allclose(theta_hat["w"], expected_hat_2d, atol=1e-6))
         self.assertTrue(torch.allclose(theta_hat["b"], expected_hat_1d, atol=1e-6))
         self.assertTrue(
             torch.allclose(theta_hat["w"] - a_scale * G_sel_2d, theta_next_2d, atol=1e-6)
+        )
+        self.assertTrue(
+            torch.allclose(theta_hat["b"], theta_next_1d, atol=1e-6)
         )
 
     def test_decoupled_identity_allocation_reproduces_isoloco_full_updates(self):
@@ -808,9 +820,118 @@ class TestSpectralAllocDecoupled(unittest.TestCase):
         opt2.load_state_dict(sd)
         self.assertTrue(torch.equal(opt1.momentum_buffers[0], opt2.momentum_buffers[0]))
 
+    def test_decoupled_end_to_end_candidate_matches_actual_optimizer_update(self):
+        torch.manual_seed(2027)
+        lr = 1.5
+        mu = 0.8
+        exclude_keys = ["embed_tokens", "wpe", "lm_head"]
+
+        p_elig = nn.Parameter(torch.randn(8, 8, dtype=torch.float32))
+        p_elig.param_name = "layers.0.attn.q_proj.weight"
+        p_excl = nn.Parameter(torch.randn(16, 8, dtype=torch.float32))
+        p_excl.param_name = "embed_tokens.weight"
+        p_1d = nn.Parameter(torch.randn(8, dtype=torch.float32))
+        p_1d.param_name = "layers.0.ln_1.weight"
+
+        params = [p_elig, p_excl, p_1d]
+        named_params = [
+            (p_elig.param_name, p_elig),
+            (p_excl.param_name, p_excl),
+            (p_1d.param_name, p_1d),
+        ]
+
+        opt = SpectralAllocDecoupledLoCo(
+            [params],
+            lr=lr,
+            momentum=mu,
+            nesterov=True,
+            exclude_keys=exclude_keys,
+        )
+        for idx, p in enumerate(params):
+            opt.momentum_buffers[idx].copy_(torch.randn_like(p))
+        B_prev = [buf.clone() for buf in opt.momentum_buffers]
+
+        g_elig = torch.randn_like(p_elig)
+        g_excl = torch.randn_like(p_excl)
+        g_1d = torch.randn_like(p_1d)
+
+        decomp = decompose_matrix_dyadic(
+            g_elig, param_idx=0, param_name=p_elig.param_name
+        )
+        num_bins = len(decomp.bin_slices)
+        m_vec = np.asarray(decomp.bin_masses, dtype=np.float64)
+
+        s_raw = np.array([1.7, 0.9, 0.82], dtype=np.float64)
+        s_nontrivial = s_raw * (float(np.sum(m_vec)) / float(np.dot(m_vec, s_raw)))
+        self.assertAlmostEqual(
+            float(np.dot(m_vec, s_nontrivial)), float(np.sum(m_vec)), places=7
+        )
+        self.assertFalse(np.allclose(s_nontrivial, np.ones_like(s_nontrivial)))
+
+        g_iso_elig, _, _ = reconstruct_matrix_from_allocation(
+            decomp, np.ones(num_bins, dtype=np.float64)
+        )
+        g_tilde_ones = {0: g_iso_elig, 1: g_excl, 2: g_1d}
+        grad_rest = {1: g_excl, 2: g_1d}
+
+        a_scale, theta_hat = compute_decoupled_nesterov_scaling_and_lookahead(
+            named_params=named_params,
+            momentum_buffers=B_prev,
+            g_tilde_ones=g_tilde_ones,
+            grad_rest=grad_rest,
+            lr=lr,
+            momentum=mu,
+            nesterov=True,
+        )
+        theta_cand = {k: v.clone() for k, v in theta_hat.items()}
+        for b_idx in range(num_bins):
+            d_mat = build_matrix_bin_direction(decomp, b_idx)
+            if d_mat is not None:
+                theta_cand[p_elig.param_name].add_(
+                    d_mat, alpha=-a_scale * float(s_nontrivial[b_idx])
+                )
+
+        merged_elig, _, _ = reconstruct_matrix_from_allocation(decomp, s_nontrivial)
+        merged_map = {0: merged_elig, 1: g_excl, 2: g_1d}
+        for p_idx, (name, p) in enumerate(named_params):
+            buf = opt.momentum_buffers[p_idx]
+            buf.mul_(mu).add_(g_tilde_ones[p_idx])
+            update = merged_map[p_idx].add(buf, alpha=mu)
+            p.data.add_(update, alpha=-lr)
+
+            self.assertTrue(
+                torch.allclose(p.data, theta_cand[name], atol=1e-5, rtol=1e-5),
+                msg=f"Candidate look-ahead mismatch on '{name}'",
+            )
+
+    def test_decoupled_invalid_momentum_raises_value_error(self):
+        p = nn.Parameter(torch.randn(8, 8, dtype=torch.float32))
+        p.param_name = "layers.0.attn.q_proj.weight"
+
+        with self.assertRaises(ValueError):
+            SpectralAllocDecoupledLoCo([[p]], lr=1.5, momentum=0.0, nesterov=True)
+
+        with self.assertRaises(ValueError):
+            SpectralAllocDecoupledLoCo([[p]], lr=1.5, momentum=-0.1, nesterov=True)
+
+        with self.assertRaises(ValueError):
+            SpectralAllocDecoupledLoCo([[p]], lr=1.5, momentum=0.8, nesterov=False)
+
+        with self.assertRaises(ValueError):
+            compute_decoupled_nesterov_scaling_and_lookahead(
+                named_params=[("w", p)],
+                momentum_buffers=[torch.zeros_like(p)],
+                g_tilde_ones={0: torch.zeros_like(p)},
+                grad_rest={},
+                lr=1.5,
+                momentum=0.8,
+                nesterov=False,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
 

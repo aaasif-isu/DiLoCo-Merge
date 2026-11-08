@@ -282,6 +282,7 @@ def compute_decoupled_nesterov_scaling_and_lookahead(
     named_params: List[Tuple[str, nn.Parameter]],
     momentum_buffers: List[Optional[torch.Tensor]],
     g_tilde_ones: Dict[int, torch.Tensor],
+    grad_rest: Dict[int, torch.Tensor],
     lr: float,
     momentum: float,
     nesterov: bool,
@@ -289,37 +290,40 @@ def compute_decoupled_nesterov_scaling_and_lookahead(
     """
     Construct the decoupled Nesterov look-ahead parameter dictionary hat_theta:
         a = lr
-        hat_theta = theta_t - lr * momentum^2 * B_{t-1} - lr * momentum * tilde_G(1)
-    where tilde_G(1) is the original IsoLoCo spectral transformation on eligible 2D
-    tensors and unchanged averaged pseudo-gradients on non-eligible tensors.
+        hat_theta = theta_t - lr * momentum^2 * B_{t-1} - lr * momentum * tilde_G(1) - lr * G_rest
+    where:
+      - tilde_G(1) is the IsoLoCo spectral transformation on eligible 2D tensors and
+        unchanged averaged pseudo-gradients on non-eligible tensors,
+      - G_rest contains the averaged pseudo-gradients of non-eligible tensors only.
 
-    Non-eligible tensors are included once in hat_theta via tilde_G(1) and excluded
-    from the allocation-dependent term -a * sum_b s_b D_b.
+    This ensures that for every tensor (eligible 2D, excluded 2D, and 1D):
+        theta_{t+1} = hat_theta - a * sum_b s_b D_b.
     """
     lr_f = float(lr)
-    mu_f = float(momentum) if momentum > 0.0 else 0.0
-    a_scale = lr_f
+    mu_f = float(momentum)
+    if not nesterov or mu_f <= 0.0:
+        raise ValueError(
+            "spectral_alloc_decoupled requires Nesterov momentum with momentum > 0 "
+            f"(got nesterov={nesterov}, momentum={momentum})."
+        )
 
-    if nesterov and mu_f > 0.0:
-        mom_buf_coeff = lr_f * (mu_f * mu_f)
-        g_ones_coeff = lr_f * mu_f
-    elif mu_f > 0.0:
-        mom_buf_coeff = lr_f * mu_f
-        g_ones_coeff = 0.0
-    else:
-        mom_buf_coeff = 0.0
-        g_ones_coeff = 0.0
+    a_scale = lr_f
+    mom_buf_coeff = lr_f * (mu_f * mu_f)
+    g_ones_coeff = lr_f * mu_f
 
     theta_hat: Dict[str, torch.Tensor] = {}
     for p_idx, (name, param) in enumerate(named_params):
         p_val = param.detach().to(dtype=torch.float32)
-        if mom_buf_coeff != 0.0 and p_idx < len(momentum_buffers):
+        if p_idx < len(momentum_buffers):
             buf = momentum_buffers[p_idx]
             if isinstance(buf, torch.Tensor):
                 p_val = p_val - mom_buf_coeff * buf.detach().to(dtype=torch.float32)
-        if g_ones_coeff != 0.0 and p_idx in g_tilde_ones:
+        if p_idx in g_tilde_ones:
             g_iso = g_tilde_ones[p_idx].detach().to(dtype=torch.float32)
             p_val = p_val - g_ones_coeff * g_iso
+        if p_idx in grad_rest:
+            g_r = grad_rest[p_idx].detach().to(dtype=torch.float32)
+            p_val = p_val - a_scale * g_r
         theta_hat[name] = p_val
 
     return a_scale, theta_hat

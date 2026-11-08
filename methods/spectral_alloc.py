@@ -549,6 +549,11 @@ class SpectralAllocLoCo(torch.optim.Optimizer):
             raise ValueError(
                 f"orthogonalize_object must be 'gradient' or 'update', got '{self.orthogonalize_object}'"
             )
+        if self.decoupled_momentum and (not self.nesterov or self.momentum <= 0.0):
+            raise ValueError(
+                "spectral_alloc_decoupled requires Nesterov momentum with momentum > 0 "
+                f"(got nesterov={self.nesterov}, momentum={self.momentum})."
+            )
         if self.nesterov and self.momentum <= 0:
             raise ValueError("Nesterov momentum requires momentum > 0")
 
@@ -1018,6 +1023,7 @@ class SpectralAllocLoCo(torch.optim.Optimizer):
                             named_params=named_params,
                             momentum_buffers=self.momentum_buffers,
                             g_tilde_ones=g_tilde_ones,
+                            grad_rest=grad_rest,
                             lr=self.lr,
                             momentum=self.momentum,
                             nesterov=self.nesterov,
@@ -1313,12 +1319,14 @@ class SpectralAllocDecoupledLoCo(SpectralAllocLoCo):
         B_t = mu * B_{t-1} + tilde_G(1)
         P_t = tilde_G(s_t) + mu * B_t
         theta_{t+1} = theta_t - lr * P_t
-    while calibrating s_t at hat_theta = theta_t - lr * mu^2 * B_{t-1} - lr * mu * tilde_G(1)
+    while calibrating s_t at:
+        hat_theta = theta_t - lr * mu^2 * B_{t-1} - lr * mu * tilde_G(1) - lr * G_rest
     with step scale a = lr.
     """
 
     def __init__(self, *args, **kwargs):
         kwargs["decoupled_momentum"] = True
+        kwargs.setdefault("nesterov", True)
         super().__init__(*args, **kwargs)
 
 
