@@ -316,6 +316,7 @@ class DistributedModelTrainer:
                 self.global_rank,
                 self.tokenizer,
                 self.config,
+                outer_optimizer=self.outer_optimizer,
             )
         else:
             raise ValueError(
@@ -719,6 +720,31 @@ class DistributedModelTrainer:
 
     def run(self):
         """Main synchronous distributed training loop."""
+        if (
+            self.global_step > 0
+            and self.train_loaders
+            and hasattr(self.strategy, "load_dataloader_state")
+        ):
+            micro_steps_per_inner = max(
+                1, self.config.batch_size // self.config.micro_batch_size
+            )
+            batches_per_window = (
+                self.config.inner_steps * micro_steps_per_inner
+                if self.config.inner_outer_strategy == "diloco"
+                else micro_steps_per_inner
+            )
+            if self.global_rank == 0:
+                logger.info(
+                    f"Advancing persistent DataLoader iterators to resumed window {self.global_step} "
+                    f"({self.global_step * batches_per_window} batches per worker)..."
+                )
+            self.strategy.load_dataloader_state(
+                self.train_loaders,
+                saved_state=None,
+                global_step=self.global_step,
+                batches_per_step=batches_per_window,
+            )
+
         for window in range(self.global_step, self.config.max_steps):
             if self.global_rank == 0:
                 logger.info(

@@ -1,4 +1,4 @@
-# Python
+# Python bytecode & build artifacts
 __pycache__/
 *.py[cod]
 *$py.class
@@ -11,47 +11,47 @@ dist/
 .venv/
 venv/
 env/
+diloco-env/
 
-# Experiment tracking / logs
+# Archive, and configs
+archive/
+configs/
+data/
+
+# Experiment outputs, checkpoints, & tracking
+outputs/
+results/
+checkpoints/
 wandb/
+*.pt
+*.pth
+*.ckpt
 *.log
 
-# SLURM job logs (keep the directory, ignore its contents)
+# Slurm & runtime logs (keep directory, ignore contents)
+logs/
 scripts/logs/*
 !scripts/logs/.gitkeep
 
-# Data, tokenized shards, checkpoints
+# Datasets & binary token shards (note: data/*.py is the Python package and is tracked)
 datasets/
 *.npy
 *.bin
-*.pt
-*.ckpt
-checkpoints/
+
+# Caches & temporary directories
+.cache/
+.triton/
+.pytest_cache/
+.ruff_cache/
 
 # Editor / OS
 .vscode/
 .idea/
 .DS_Store
 
-# Virtual environment
-diloco-env/
-
-# Data and experiment outputs
-data/
-outputs/
-results/
-logs/
-wandb/
-checkpoints/
-*.pt
-*.pth
-*.ckpt
-
-# Python cache
-__pycache__/
-*.pyc
-
-# Secrets
+# Credentials & secrets
 .env
 .env.*
 *.key
+.netrc
+

@@ -1,66 +1,87 @@
-# Modular Research Framework for Model-Merging Aggregation in DiLoCo (`diloco_merge`)
+# Spectral & Model-Merging Aggregation in DiLoCo (`diloco_merge`)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/release/python-3110/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/release/3110/)
 
-A clean, lightweight, modular research codebase for experimenting with model-merging-based outer aggregation in distributed language-model training. Refactored from the official [IsoLoCo](https://github.com/shoroi/isoloco) repository accompanying **"Can Model Merging Improve Aggregation in DiLoCo?"** (Stefan Horoi, Benjamin Thérien, Guy Wolf, Eugene Belilovsky), which builds on the [SparseLoCo](https://github.com/tplr-ai/SparseLoCo) distributed training scaffolding.
+A modular research framework for spectral outer aggregation in distributed low-communication language model training (DiLoCo). Built upon the [IsoLoCo](https://github.com/shoroi/isoloco) and [SparseLoCo](https://github.com/tplr-ai/SparseLoCo) distributed training foundations, this repository implements and benchmarks four active outer aggregation methods across 15M TinyGPT (mC4 IID & Non-IID) and 178M Llama (DCLM Pilot, 300M-token, and 3.55B Chinchilla-budget) scales:
 
-All baseline algorithms — **DiLoCo**, **IsoLoCo** (Iso-C with Nesterov momentum), **Iso-C**, **Iso-CTS**, **TSVLoCo**, **MergeLoCo** (TIES / DARE), and the **AdamW** data-parallel baseline — are preserved mathematically unchanged.
+1. **DiLoCo (`diloco`)**: Standard pseudo-gradient averaging with outer Nesterov SGD (`methods/diloco.py`).
+2. **IsoLoCo (`isoloco`)**: Isotropic Covariance (`Iso-C`) spectral flattening ($\tilde{\sigma}_i = \bar{\sigma}$) with outer Nesterov momentum (`methods/isocloco.py`).
+3. **RankLoCo V1 (`erank_iso`)**: $L_1$ Shannon Effective-Rank Tikhonov spectral shaping ($\psi_i = \sigma_i / \sqrt{\sigma_i^2 + \tau_1^2}$, $\tau_1 = \sigma_{\lceil r_{\text{eff}} \rceil}$) with IsoLoCo Frobenius-norm matching ($\tilde{\sigma}_i = \psi_i \frac{\sqrt{R}\bar{\sigma}}{\|\psi\|_2}$) (`methods/erank_iso.py`).
+4. **RankLoCo V2 (`rankiso_v2`)**: $L_1$ Shannon Effective-Rank Tikhonov spectral shaping with Spectral-Ceiling L1 normalization ($\tilde{\sigma}_i = \bar{\sigma} \frac{\psi_i}{\psi_1} \le \bar{\sigma}$), preserving IsoLoCo's exact operator-norm ceiling while attenuating low-rank tail noise (`methods/rankiso_v2.py`).
 
 ---
 
-## 1. Project Structure
+## 1. Repository Structure
 
 ```text
 diloco_merge/
-├── configs/
-│   ├── default.yaml                  # Main configuration file with all defaults
-│   ├── diloco_178m.yaml              # DiLoCo baseline (178M, 8 workers)
-│   ├── isoloco_178m.yaml             # IsoLoCo: Iso-C + Nesterov (178M, 8 workers)
-│   ├── isoc_178m.yaml                # Iso-C without outer momentum (178M, 8 workers)
-│   ├── isocts_178m.yaml              # Iso-CTS (178M, 8 workers)
-│   ├── tsv_178m.yaml                 # TSVLoCo (178M, 8 workers)
-│   ├── ties_178m.yaml                # MergeLoCo TIES (178M, 8 workers)
-│   ├── dare_178m.yaml                # MergeLoCo DARE (178M, 8 workers)
-│   ├── adamw_178m.yaml               # AdamW data-parallel baseline (178M)
-│   ├── diloco_512m.yaml              # DiLoCo baseline (512M, 8 workers)
-│   └── isoloco_512m.yaml             # IsoLoCo (512M, 8 workers)
-├── models/
+├── README.md                                  # Documentation, methods, configs, & commands
+├── LICENSE
+├── pyproject.toml                             # Package metadata and dependencies
+├── uv.lock
+├── train.py                                   # Main distributed training entrypoint
+├── pretokenize_data.py                        # Dataset pre-tokenization & partition manifest builder
+├── run_178m_dclm_chinchilla.sbatch            # Slurm script: 178M Llama 3.55B Chinchilla benchmark
+│
+├── methods/                                   # Active outer aggregation optimizers
 │   ├── __init__.py
-│   ├── registry.py                   # Model & tokenizer builder, registry, Torchtitan init
-│   └── configs/
-│       ├── 178M_model_hparams.json   # 178M LLaMA architecture hyperparameters
-│       └── 512M_model_hparams.json   # 512M LLaMA architecture hyperparameters
-├── data/
+│   ├── base.py                                # Method registry, strategy presets, & factory
+│   ├── diloco.py                              # DiLoCo (Nesterov SGD, SGD, AdamW)
+│   ├── isocloco.py                            # IsoLoCo (Iso-C + Nesterov)
+│   ├── erank_iso.py                           # RankLoCo V1 (Effective-Rank Tikhonov + Frobenius match)
+│   └── rankiso_v2.py                          # RankLoCo V2 (Effective-Rank Tikhonov + Spectral-Ceiling L1)
+│
+├── configs/                                   # Flat YAML experiment configurations
+│   ├── default.yaml                           # Base defaults & model/dataset/method presets
+│   ├── experiment.yaml                        # Default 15M mC4 experiment configuration
+│   ├── diloco_178m.yaml                       # 178M DCLM Chinchilla (3.55B tokens, 225r) — DiLoCo
+│   ├── isoloco_178m.yaml                      # 178M DCLM Chinchilla (3.55B tokens, 225r) — IsoLoCo
+│   ├── erank_iso_178m.yaml                    # 178M DCLM Chinchilla (3.55B tokens, 225r) — RankLoCo V1
+│   ├── pilot_178m_diloco_50r.yaml             # 178M DCLM Pilot (24.6M tokens, 50r) — DiLoCo
+│   ├── pilot_178m_isoloco_50r.yaml            # 178M DCLM Pilot (24.6M tokens, 50r) — IsoLoCo
+│   ├── pilot_178m_erank_iso_50r.yaml          # 178M DCLM Pilot (24.6M tokens, 50r) — RankLoCo V1
+│   ├── pilot_178m_rankiso_v2_50r.yaml         # 178M DCLM Pilot (24.6M tokens, 50r) — RankLoCo V2
+│   ├── dclm_178m_diloco_300m.yaml             # 178M DCLM 300M-Token (610r) — DiLoCo
+│   ├── dclm_178m_isoloco_300m.yaml            # 178M DCLM 300M-Token (610r) — IsoLoCo
+│   ├── dclm_178m_erank_iso_300m.yaml          # 178M DCLM 300M-Token (610r) — RankLoCo V1
+│   ├── diloco_iid_300m.yaml                   # 15M mC4 300M-Token (2442r) — DiLoCo
+│   ├── isoloco_iid_300m.yaml                  # 15M mC4 300M-Token (2442r) — IsoLoCo
+│   ├── erank_iso_iid_300m.yaml                # 15M mC4 300M-Token (2442r) — RankLoCo V1
+│   ├── isoloco_iid_50r.yaml                   # 15M mC4 IID (50r) — IsoLoCo
+│   ├── erank_iso_iid_50r.yaml                 # 15M mC4 IID (50r) — RankLoCo V1
+│   ├── erank_iso_iid_100r.yaml                # 15M mC4 IID (100r) — RankLoCo V1
+│   └── erank_iso_noniid_language_100r.yaml    # 15M mC4 Non-IID Language (100r) — RankLoCo V1
+│
+├── models/                                    # Model registry, TinyGPT & Llama builders, hparams JSONs
 │   ├── __init__.py
-│   ├── preprocess.py                 # Deterministic DCLM preprocessing & metadata recording
-│   ├── partitioning.py               # IID / Non-IID partitioning interfaces & manifest I/O
-│   └── dataset.py                    # ShardedGPUDataset & DataLoader builders
-├── methods/
+│   ├── registry.py
+│   ├── tinygpt.py
+│   └── configs/{15M,178M,512M}_model_hparams.json
+├── data/                                      # Dataset loading, streaming sharding, & IID/Non-IID partitioning
 │   ├── __init__.py
-│   ├── base.py                       # Aggregation method registry, presets, & factory
-│   ├── diloco.py                     # DiLoCo outer optimizers (Nesterov SGD, SGD, AdamW)
-│   ├── isocloco.py                   # Official ISOCLoCo (Iso-C & IsoLoCo)
-│   ├── isoctsloco.py                 # Official ISOCTSLoCo (Iso-CTS)
-│   ├── tsvloco.py                    # Official TSVLoCo
-│   └── mergeloco.py                  # Official MergeLoCo (TIES / DARE)
-├── training/
+│   ├── dataset.py
+│   ├── partitioning.py
+│   ├── preprocess.py
+│   └── mc4_preprocess.py
+├── training/                                  # Trainer, inner/outer strategies, sync, & config loader
 │   ├── __init__.py
-│   ├── config.py                     # YAML + CLI configuration loader & normalizer
-│   ├── optimizers.py                 # Inner & outer optimizer and scheduler management
-│   ├── synchronization.py            # Pseudo-gradient computation & synchronous worker sync
-│   ├── strategies.py                 # InnerOuterStrategy, SimpleAccum, Diloco
-│   └── trainer.py                    # DistributedModelTrainer & Timer
-├── evaluation/
+│   ├── config.py
+│   ├── optimizers.py
+│   ├── strategies.py
+│   ├── synchronization.py
+│   └── trainer.py
+├── evaluation/                                # Global/per-worker evaluation & JSONL/W&B metrics tracker
 │   ├── __init__.py
-│   ├── evaluator.py                  # Global & per-worker validation loss evaluation
-│   └── metrics.py                    # Config & metrics persistence (JSON/JSONL/W&B)
-├── src/tplr/                         # Backward-compatible package re-exports
-├── hparams/                          # Original model JSONs and W&B sweep YAMLs
-├── scripts/                          # Original SLURM sweep launch scripts
-├── pretokenize_data.py               # Entrypoint for dataset preparation & partitioning
-├── train.py                          # Entrypoint for distributed training
-└── pyproject.toml                    # Package metadata and dependencies
+│   ├── evaluator.py
+│   └── metrics.py
+├── scripts/                                   # Comparison & plotting utilities
+│   ├── compare_methods.py
+│   └── logs/.gitkeep
+├── tests/                                     # Mathematical & integration unit tests for active methods
+│   ├── test_erank_iso.py
+│   └── test_rankiso_v2.py
+└── archive/                                   # Archived exploratory methods, configs, tests, & legacy files
 ```
 
 ---
@@ -151,40 +172,73 @@ Each run automatically saves `experiment_config.json`, `experiment_config.yaml`,
 
 ---
 
-## 5. Example Experiment Commands
+## 5. Reproducible Experiment Commands
 
-Set environment paths before launching:
+### A. 178M Llama DCLM Chinchilla-Budget Benchmark (3.55B Tokens, 225 Rounds)
+
+Submit the full sequential Slurm benchmark (DiLoCo $\to$ IsoLoCo $\to$ RankLoCo V1 `erank_iso` + post-run summary comparison):
 ```bash
-export DATA_DIR="/path/to/datasets"
-export SAVE_DIR="./outputs/run_1"
+sbatch run_178m_dclm_chinchilla.sbatch
+```
+Or run individual methods directly:
+```bash
+python -u train.py --config configs/diloco_178m.yaml
+python -u train.py --config configs/isoloco_178m.yaml
+python -u train.py --config configs/erank_iso_178m.yaml
 ```
 
-### Run IsoLoCo (178M, 8 workers across 4 GPUs)
+### B. 178M Llama DCLM 50-Round Pilot Experiments (24.58M Tokens, $W=4, H=30, \text{bs}=2$)
+
 ```bash
-torchrun --nproc_per_node=4 train.py --config configs/isoloco_178m.yaml
+python -u train.py --config configs/pilot_178m_diloco_50r.yaml
+python -u train.py --config configs/pilot_178m_isoloco_50r.yaml
+python -u train.py --config configs/pilot_178m_erank_iso_50r.yaml
+python -u train.py --config configs/pilot_178m_rankiso_v2_50r.yaml
 ```
 
-### Run DiLoCo Baseline (178M, 8 workers across 4 GPUs)
+### C. 178M Llama DCLM 300M-Token Experiments (610 Rounds)
+
 ```bash
-torchrun --nproc_per_node=4 train.py --config configs/diloco_178m.yaml
+python -u train.py --config configs/dclm_178m_diloco_300m.yaml
+python -u train.py --config configs/dclm_178m_isoloco_300m.yaml
+python -u train.py --config configs/dclm_178m_erank_iso_300m.yaml
 ```
 
-### Run Iso-CTS (178M, 8 workers across 4 GPUs)
+### D. 15M TinyGPT mC4 IID & Non-IID Experiments
+
 ```bash
-torchrun --nproc_per_node=4 train.py --config configs/isocts_178m.yaml
+# 50-round and 100-round IID benchmarks
+python -u train.py --config configs/isoloco_iid_50r.yaml
+python -u train.py --config configs/erank_iso_iid_50r.yaml
+python -u train.py --config configs/erank_iso_iid_100r.yaml
+
+# 100-round Non-IID language-partitioned benchmark
+python -u train.py --config configs/erank_iso_noniid_language_100r.yaml
+
+# 300M-token (2,442-round) IID benchmarks
+python -u train.py --config configs/diloco_iid_300m.yaml
+python -u train.py --config configs/isoloco_iid_300m.yaml
+python -u train.py --config configs/erank_iso_iid_300m.yaml
 ```
 
-### Override Worker Count, Seed, or Hyperparameters via CLI
-Changing the number of workers or GPUs does not require any source code changes:
+### E. Post-Run Comparison Summary & Plots
+
+Compare any set of completed experiment directories and generate `comparison.csv`, `convergence_rounds.png`, `runtime_comparison.png`, and `convergence_time.png`:
 ```bash
-torchrun --nproc_per_node=4 train.py \
-  --config configs/isoloco_178m.yaml \
-  --num_workers 16 \
-  --inner_steps 50 \
-  --seed 123 \
-  --per_worker_eval true \
-  --partition_file $DATA_DIR/dclm_tokenized-train_valid_test/partitions_train_iid_w16.json
+python -u scripts/compare_methods.py \
+  --dirs \
+    outputs/dclm_178m_diloco_iid_w4_h30_r225_s42 \
+    outputs/dclm_178m_isoloco_iid_w4_h30_r225_s42 \
+    outputs/dclm_178m_erank_iso_iid_w4_h30_r225_s42 \
+  --output_dir outputs/comparison_chinchilla_178m
 ```
+
+### F. Running Unit Tests
+
+```bash
+python -m unittest discover -s tests -v
+```
+
 
 ---
 

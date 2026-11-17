@@ -35,19 +35,23 @@ DEFAULT_SUMMARY_DIR = REPO_ROOT / "outputs" / "comparison_iid_lr1p5"
 METHODS_ORDER: List[str] = [
     "diloco",
     "isoloco",
-    "spectral_alloc_decoupled",
+    "erank_iso",
 ]
 
 METHOD_DISPLAY_NAMES: Dict[str, str] = {
     "diloco": "DiLoCo",
     "isoloco": "IsoLoCo",
+    "erank_iso": "RankLoCo (erank_iso)",
+    "rankiso_v2": "RankLoCo V2 (rankiso_v2)",
     "spectral_alloc_decoupled": "Spectral Alloc Decoupled",
 }
 
 METHOD_COLORS: Dict[str, str] = {
     "diloco": "#1f77b4",
     "isoloco": "#ff7f0e",
-    "spectral_alloc_decoupled": "#2ca02c",
+    "erank_iso": "#2ca02c",
+    "rankiso_v2": "#d62728",
+    "spectral_alloc_decoupled": "#9467bd",
 }
 
 
@@ -430,9 +434,65 @@ def write_comparison_csv(
             )
 
 
+def load_existing_run_dir(run_dir: Path) -> MethodBenchmarkResult:
+    """Load validation trajectory and summary metrics from an existing completed run directory."""
+    run_dir = run_dir.resolve()
+    metrics_jsonl_path = run_dir / "metrics.jsonl"
+    summary_json_path = run_dir / "metrics_summary.json"
+    validation_points = load_validation_trajectory(metrics_jsonl_path)
+
+    method = run_dir.name
+    outer_lr = 0.0
+    calib_bs: Optional[int] = None
+    best_valid_loss = min(pt.valid_loss for pt in validation_points)
+    final_valid_loss = validation_points[-1].valid_loss
+    total_runtime_sec = validation_points[-1].elapsed_sec
+    total_runtime_min = validation_points[-1].elapsed_min
+
+    if summary_json_path.is_file():
+        with open(summary_json_path, "r", encoding="utf-8") as f:
+            summary = json.load(f)
+        cfg = summary.get("config", {})
+        method = str(cfg.get("method") or cfg.get("strategy") or method)
+        outer_lr = float(cfg.get("outer_learning_rate", 0.0) or 0.0)
+        if summary.get("best_valid_loss") is not None:
+            best_valid_loss = float(summary["best_valid_loss"])
+        if summary.get("total_elapsed_sec") is not None:
+            total_runtime_sec = float(summary["total_elapsed_sec"])
+            total_runtime_min = float(
+                summary.get("total_elapsed_min", total_runtime_sec / 60.0)
+            )
+
+    return MethodBenchmarkResult(
+        method=method,
+        outer_learning_rate=outer_lr,
+        calibration_batch_size=calib_bs,
+        final_valid_loss=final_valid_loss,
+        best_valid_loss=best_valid_loss,
+        total_runtime_sec=total_runtime_sec,
+        total_runtime_min=total_runtime_min,
+        run_dir=run_dir,
+        exit_status=0,
+        validation_points=validation_points,
+    )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Sequential benchmark runner for DiLoCo, IsoLoCo, and Spectral Alloc Decoupled."
+        description="Benchmark comparison runner and post-run summary generator for DiLoCo, IsoLoCo, and RankLoCo."
+    )
+    parser.add_argument(
+        "--dirs",
+        type=Path,
+        nargs="+",
+        default=None,
+        help="Optional list of existing completed run directories to compare without running training.",
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=Path,
+        default=None,
+        help="Alias for --summary_dir when comparing existing run directories.",
     )
     parser.add_argument(
         "--config",
@@ -459,44 +519,50 @@ def parse_args() -> argparse.Namespace:
         "--calibration_batch_size",
         type=int,
         default=32,
-        help="Calibration batch size for spectral_alloc_decoupled only (default: 32).",
+        help="Optional calibration batch size.",
     )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    config_path = (
-        args.config.resolve()
-        if args.config.is_absolute()
-        else (REPO_ROOT / args.config).resolve()
-    )
+    target_summary_dir = args.output_dir if args.output_dir is not None else args.summary_dir
     summary_dir = (
-        args.summary_dir.resolve()
-        if args.summary_dir.is_absolute()
-        else (REPO_ROOT / args.summary_dir).resolve()
+        target_summary_dir.resolve()
+        if target_summary_dir.is_absolute()
+        else (REPO_ROOT / target_summary_dir).resolve()
     )
-    outputs_root = REPO_ROOT / "outputs"
-    outputs_root.mkdir(parents=True, exist_ok=True)
 
     results: List[MethodBenchmarkResult] = []
-    for method in METHODS_ORDER:
-        res = run_single_method(
-            method=method,
-            config_path=config_path,
-            outputs_root=outputs_root,
-            dataset=args.dataset,
-            partition=args.partition,
-            model_size=args.model_size,
-            num_workers=args.num_workers,
-            inner_steps=args.inner_steps,
-            max_steps=args.max_steps,
-            seed=args.seed,
-            outer_lr=args.outer_learning_rate,
-            eval_frequency=args.eval_frequency,
-            calibration_batch_size=args.calibration_batch_size,
+    if args.dirs:
+        for d in args.dirs:
+            d_path = d.resolve() if d.is_absolute() else (REPO_ROOT / d).resolve()
+            results.append(load_existing_run_dir(d_path))
+    else:
+        config_path = (
+            args.config.resolve()
+            if args.config.is_absolute()
+            else (REPO_ROOT / args.config).resolve()
         )
-        results.append(res)
+        outputs_root = REPO_ROOT / "outputs"
+        outputs_root.mkdir(parents=True, exist_ok=True)
+        for method in METHODS_ORDER:
+            res = run_single_method(
+                method=method,
+                config_path=config_path,
+                outputs_root=outputs_root,
+                dataset=args.dataset,
+                partition=args.partition,
+                model_size=args.model_size,
+                num_workers=args.num_workers,
+                inner_steps=args.inner_steps,
+                max_steps=args.max_steps,
+                seed=args.seed,
+                outer_lr=args.outer_learning_rate,
+                eval_frequency=args.eval_frequency,
+                calibration_batch_size=args.calibration_batch_size,
+            )
+            results.append(res)
 
     summary_dir.mkdir(parents=True, exist_ok=True)
     fig1_path = summary_dir / "convergence_rounds.png"

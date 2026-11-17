@@ -142,6 +142,45 @@ def flatten_yaml_config(
             "eval_actual_calib_loss_change": "eval_actual_calib_loss_change",
             "kkt_tol": "kkt_tol",
             "feas_tol": "feas_tol",
+            "svc_alpha": "svc_alpha",
+            "svc_eps": "svc_eps",
+            "svc_enabled": "svc_enabled",
+            "num_groups": "num_groups",
+            "group_size": "group_size",
+            "spectra_c": "spectra_c",
+            "normalized_spectra_c": "normalized_spectra_c",
+            "frob_matched_spectra_c": "frob_matched_spectra_c",
+            "heloco_rho": "heloco_rho",
+            "heloco_c_ok": "heloco_c_ok",
+            "heloco_k_s": "heloco_k_s",
+            "heloco_k_d": "heloco_k_d",
+            "heloco_kappa": "heloco_kappa",
+            "heloco_beta_max": "heloco_beta_max",
+            "heloco_eps": "heloco_eps",
+            "heloco_correction_scope": "heloco_correction_scope",
+            "agreement_iso_eps": "agreement_iso_eps",
+        },
+        "agreement_iso": {
+            "eps": "agreement_iso_eps",
+        },
+        "spectra_isoloco": {
+            "c": "spectra_c",
+        },
+        "normalized_spectra_iso": {
+            "c": "normalized_spectra_c",
+        },
+        "frob_matched_spectra_iso": {
+            "c": "frob_matched_spectra_c",
+        },
+        "heloco": {
+            "rho": "heloco_rho",
+            "c_ok": "heloco_c_ok",
+            "k_s": "heloco_k_s",
+            "k_d": "heloco_k_d",
+            "kappa": "heloco_kappa",
+            "beta_max": "heloco_beta_max",
+            "eps": "heloco_eps",
+            "correction_scope": "heloco_correction_scope",
         },
         "outer_optimizer": {
             "type": "outer_optimizer",
@@ -202,13 +241,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--method",
         type=str,
         default=None,
-        help="Aggregation method selector (diloco, isoloco, signal_iso, soft_signal_iso, spectral_alloc, spectral_alloc_decoupled, isocloco, isoctsloco, tsvloco, mergeloco, adam_baseline)",
+        help="Aggregation method selector (diloco, isoloco, erank_iso, rankiso_v2, isocloco, adam_baseline)",
     )
     parser.add_argument(
         "--strategy",
         type=str,
         default=None,
-        help="Preset strategy (diloco_baseline, isoloco, signal_iso, soft_signal_iso, spectral_alloc, spectral_alloc_decoupled, isocloco, isoctsloco, tsvloco, mergeloco, diloco_sgd_noMom, adam_baseline)",
+        help="Preset strategy (diloco_baseline, isoloco, erank_iso, rankiso_v2, isocloco, diloco_sgd_noMom, adam_baseline)",
     )
     parser.add_argument(
         "--inner_outer_strategy",
@@ -230,14 +269,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
             "adamw",
             "nesterov",
             "sgd",
-            "mergeloco",
-            "tsvloco",
             "isocloco",
-            "isoctsloco",
-            "signal_iso",
-            "soft_signal_iso",
-            "spectral_alloc",
-            "spectral_alloc_decoupled",
+            "erank_iso",
+            "erank_isoloco",
+            "rankiso_v2",
+            "rankisov2",
         ],
     )
     parser.add_argument("--num_workers", type=int, default=None)
@@ -374,6 +410,29 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--kkt_tol", type=float, default=1e-5)
     parser.add_argument("--feas_tol", type=float, default=1e-7)
+    parser.add_argument("--svc_alpha", type=float, default=0.1)
+    parser.add_argument("--svc_eps", type=float, default=1e-12)
+    parser.add_argument(
+        "--svc_enabled",
+        type=str_to_bool,
+        nargs="?",
+        const=True,
+        default=True,
+    )
+    parser.add_argument("--num_groups", type=int, default=3)
+    parser.add_argument("--group_size", type=int, default=2)
+    parser.add_argument("--spectra_c", type=float, default=3.0)
+    parser.add_argument("--normalized_spectra_c", type=float, default=None)
+    parser.add_argument("--frob_matched_spectra_c", type=float, default=None)
+    parser.add_argument("--heloco_rho", type=float, default=1.0)
+    parser.add_argument("--heloco_c_ok", type=float, default=0.2)
+    parser.add_argument("--heloco_k_s", type=float, default=0.5)
+    parser.add_argument("--heloco_k_d", type=float, default=1.0)
+    parser.add_argument("--heloco_kappa", type=float, default=3.0)
+    parser.add_argument("--heloco_beta_max", type=float, default=0.5)
+    parser.add_argument("--heloco_eps", type=float, default=1e-8)
+    parser.add_argument("--heloco_correction_scope", type=str, default="tensorwise")
+    parser.add_argument("--agreement_iso_eps", type=float, default=0.0)
     return parser
 
 
@@ -476,6 +535,35 @@ def load_experiment_config(argv: Optional[List[str]] = None) -> SimpleNamespace:
         "diloco": "diloco",
         "diloco_baseline": "diloco",
         "isoloco": "isoloco",
+        "erank_iso": "erank_iso",
+        "erank_isoloco": "erank_iso",
+        "erankisoloco": "erank_iso",
+        "rankiso_v2": "rankiso_v2",
+        "rankisov2": "rankiso_v2",
+        "erank_iso_fast": "erank_iso_fast",
+        "erank_isoloco_fast": "erank_iso_fast",
+        "erankisofast": "erank_iso_fast",
+        "erankisolocofast": "erank_iso_fast",
+        "group_iso": "group_iso",
+        "group_isoloco": "group_iso",
+        "groupisoloco": "group_iso",
+        "topbottom_iso": "topbottom_iso",
+        "topbottom_isoloco": "topbottom_iso",
+        "topbottomisoloco": "topbottom_iso",
+        "spectra_isoloco": "spectra_isoloco",
+        "spectraisoloco": "spectra_isoloco",
+        "spectra_iso": "spectra_isoloco",
+        "normalized_spectra_iso": "normalized_spectra_iso",
+        "normalized_spectra_isoloco": "normalized_spectra_iso",
+        "normalizedspectraisoloco": "normalized_spectra_iso",
+        "frob_matched_spectra_iso": "frob_matched_spectra_iso",
+        "frob_matched_spectra_isoloco": "frob_matched_spectra_iso",
+        "frobmatchedspectraisoloco": "frob_matched_spectra_iso",
+        "heloco": "heloco",
+        "gd_continuous_iso": "gd_continuous_iso",
+        "gd_continuous_isoloco": "gd_continuous_iso",
+        "gdcontinuousiso": "gd_continuous_iso",
+        "gdcontinuousisoloco": "gd_continuous_iso",
         "signal_iso": "signal_iso",
         "signal_isoloco": "signal_iso",
         "signalisoloco": "signal_iso",
@@ -488,6 +576,12 @@ def load_experiment_config(argv: Optional[List[str]] = None) -> SimpleNamespace:
         "spectral_alloc_decoupled": "spectral_alloc_decoupled",
         "spectral_alloc_decoupled_loco": "spectral_alloc_decoupled",
         "spectralallocdecoupled": "spectral_alloc_decoupled",
+        "svc": "svc",
+        "svcloco": "svc",
+        "isoloco_svc": "isoloco_svc",
+        "isolocosvc": "isoloco_svc",
+        "isoc_svc": "isoloco_svc",
+        "iso_svc": "isoloco_svc",
         "isoc": "isocloco",
         "isocloco": "isocloco",
         "isocts": "isoctsloco",
@@ -645,9 +739,34 @@ def load_experiment_config(argv: Optional[List[str]] = None) -> SimpleNamespace:
         if int(final_dict.get("max_steps", -1)) > 0
         else max(1, int(final_dict["token_budget"]) // tokens_per_round)
     )
-    run_id = final_dict.get("run_id") or (
-        f"w{eff_workers}_h{final_dict['inner_steps']}_r{eff_rounds}_s{final_dict['seed']}"
-    )
+    if method_tag == "group_iso":
+        num_groups_val = int(final_dict.get("num_groups") or 3)
+        final_dict["num_groups"] = num_groups_val
+        default_run_id = (
+            f"g{num_groups_val}_w{eff_workers}_h{final_dict['inner_steps']}"
+            f"_r{eff_rounds}_s{final_dict['seed']}"
+        )
+    elif method_tag == "topbottom_iso":
+        raw_gs = final_dict.get("group_size", 2)
+        if (
+            isinstance(raw_gs, bool)
+            or not isinstance(raw_gs, int)
+            or raw_gs <= 0
+        ):
+            raise ValueError(
+                f"group_size must be a positive integer, got {raw_gs!r}."
+            )
+        final_dict["group_size"] = raw_gs
+        default_run_id = (
+            f"gs{raw_gs}_w{eff_workers}_h{final_dict['inner_steps']}"
+            f"_r{eff_rounds}_s{final_dict['seed']}"
+        )
+    else:
+        default_run_id = (
+            f"w{eff_workers}_h{final_dict['inner_steps']}"
+            f"_r{eff_rounds}_s{final_dict['seed']}"
+        )
+    run_id = final_dict.get("run_id") or default_run_id
     structured_name = f"{dataset_tag}_{model_tag}_{method_tag}_{partition_tag}_{run_id}"
 
     if final_dict.get("run_name") in (None, "", "auto", "run"):

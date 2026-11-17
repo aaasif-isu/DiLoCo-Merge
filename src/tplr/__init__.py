@@ -4,17 +4,14 @@ from logging import Logger
 
 from data import ShardedGPUDataset, get_dataloader
 from methods import (
+    ErankIsoLoCo,
     ISOCLoCo,
-    ISOCTSLoCo,
-    MergeLoCo,
-    SignalIsoLoCo,
-    SoftSignalIsoLoCo,
-    SpectralAllocDecoupledLoCo,
-    SpectralAllocLoCo,
-    TSVLoCo,
+    RankIsoV2,
+    RankIsoV2LoCo,
 )
 from training import Diloco, SimpleAccum
 from .logging_utils import *
 
 logger: Logger
+
 

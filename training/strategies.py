@@ -14,6 +14,150 @@ logger = logging.getLogger("loco")
 
 
 class InnerOuterStrategy(ABC):
+    def _init_loader_tracking(self) -> None:
+        """Initialize persistent per-DataLoader iterator and RNG state tracking."""
+        self._loader_states: dict[int, dict] = {}
+
+    def _create_epoch_iterator(self, loader, epoch_index: int = 0) -> dict:
+        """Create a fresh epoch iterator while snapshotting the pre-epoch generator RNG state."""
+        gen = getattr(loader, "generator", None)
+        epoch_start_rng_state = (
+            gen.get_state().clone() if isinstance(gen, torch.Generator) else None
+        )
+        iterator = iter(loader)
+        state = {
+            "loader": loader,
+            "iterator": iterator,
+            "epoch_index": int(epoch_index),
+            "batches_consumed_in_epoch": 0,
+            "epoch_start_rng_state": epoch_start_rng_state,
+        }
+        self._loader_states[id(loader)] = state
+        return state
+
+    def _next_batch(self, loader):
+        """
+        Fetch the next batch from the persistent iterator for `loader`.
+        Reshuffles (creates a new iterator) only when the current epoch is exhausted.
+        """
+        if not hasattr(self, "_loader_states"):
+            self._init_loader_tracking()
+
+        lid = id(loader)
+        state = self._loader_states.get(lid)
+        if state is None or state.get("loader") is not loader:
+            state = self._create_epoch_iterator(loader, epoch_index=0)
+
+        try:
+            batch = next(state["iterator"])
+            state["batches_consumed_in_epoch"] += 1
+            return batch
+        except StopIteration:
+            next_epoch = int(state["epoch_index"]) + 1
+            state = self._create_epoch_iterator(loader, epoch_index=next_epoch)
+            batch = next(state["iterator"])
+            state["batches_consumed_in_epoch"] += 1
+            return batch
+
+    def get_dataloader_state(self, loaders) -> list[dict]:
+        """Export serializable per-worker DataLoader traversal state for checkpointing."""
+        if not hasattr(self, "_loader_states"):
+            self._init_loader_tracking()
+
+        exported: list[dict] = []
+        for idx, loader in enumerate(loaders):
+            state = self._loader_states.get(id(loader))
+            gen = getattr(loader, "generator", None)
+            current_rng = (
+                gen.get_state().clone() if isinstance(gen, torch.Generator) else None
+            )
+            if state is None or state.get("loader") is not loader:
+                exported.append(
+                    {
+                        "worker_idx": idx,
+                        "initialized": False,
+                        "epoch_index": 0,
+                        "batches_consumed_in_epoch": 0,
+                        "epoch_start_rng_state": current_rng,
+                        "current_rng_state": current_rng,
+                    }
+                )
+            else:
+                exported.append(
+                    {
+                        "worker_idx": idx,
+                        "initialized": True,
+                        "epoch_index": int(state["epoch_index"]),
+                        "batches_consumed_in_epoch": int(
+                            state["batches_consumed_in_epoch"]
+                        ),
+                        "epoch_start_rng_state": (
+                            state["epoch_start_rng_state"].clone()
+                            if isinstance(state["epoch_start_rng_state"], torch.Tensor)
+                            else None
+                        ),
+                        "current_rng_state": current_rng,
+                    }
+                )
+        return exported
+
+    def load_dataloader_state(
+        self,
+        loaders,
+        saved_state: list[dict] | None,
+        global_step: int = 0,
+        batches_per_step: int = 0,
+    ) -> None:
+        """
+        Restore per-worker DataLoader iterators to the exact epoch and batch offset
+        at checkpoint time so resuming never repeats or skips batches.
+        """
+        if not hasattr(self, "_loader_states"):
+            self._init_loader_tracking()
+        self._loader_states.clear()
+
+        if saved_state and isinstance(saved_state, list) and len(saved_state) == len(loaders):
+            for loader, entry in zip(loaders, saved_state):
+                if not entry.get("initialized", True):
+                    gen = getattr(loader, "generator", None)
+                    saved_rng = entry.get("current_rng_state")
+                    if isinstance(gen, torch.Generator) and isinstance(
+                        saved_rng, torch.Tensor
+                    ):
+                        gen.set_state(saved_rng.cpu().to(dtype=torch.uint8))
+                    continue
+
+                gen = getattr(loader, "generator", None)
+                epoch_rng = entry.get("epoch_start_rng_state")
+                if isinstance(gen, torch.Generator) and isinstance(
+                    epoch_rng, torch.Tensor
+                ):
+                    gen.set_state(epoch_rng.cpu().to(dtype=torch.uint8))
+
+                epoch_idx = int(entry.get("epoch_index", 0))
+                consumed = int(entry.get("batches_consumed_in_epoch", 0))
+                state = self._create_epoch_iterator(loader, epoch_index=epoch_idx)
+
+                for _ in range(consumed):
+                    try:
+                        next(state["iterator"])
+                        state["batches_consumed_in_epoch"] += 1
+                    except StopIteration:
+                        epoch_idx += 1
+                        state = self._create_epoch_iterator(
+                            loader, epoch_index=epoch_idx
+                        )
+                        next(state["iterator"])
+                        state["batches_consumed_in_epoch"] += 1
+        elif global_step > 0 and batches_per_step > 0:
+            total_batches_to_advance = int(global_step) * int(batches_per_step)
+            for loader in loaders:
+                for _ in range(total_batches_to_advance):
+                    try:
+                        self._next_batch(loader)
+                    except StopIteration:
+                        break
+
     @abstractmethod
     def inner_step(self, model, loader, inner_optimizer=None, inner_scheduler=None):
         """Execute inner optimization step."""
@@ -27,6 +171,7 @@ class InnerOuterStrategy(ABC):
 
 class SimpleAccum(InnerOuterStrategy):
     def __init__(self, device, world_size, global_rank, tokenizer, config):
+        self._init_loader_tracking()
         self.device = device
         self.world_size = world_size
         self.global_rank = global_rank
@@ -42,7 +187,13 @@ class SimpleAccum(InnerOuterStrategy):
         batch_count = 0
         accum_batch_size = 0
 
-        for i, batch in enumerate(loader):
+        i = 0
+        while accum_batch_size < self.config.batch_size:
+            try:
+                batch = self._next_batch(loader)
+            except StopIteration:
+                break
+
             input_ids = batch.to(self.device, non_blocking=True)
             labels = input_ids.clone()
             labels[labels == self.tokenizer.pad_token_id] = -100
@@ -68,6 +219,7 @@ class SimpleAccum(InnerOuterStrategy):
                     f"Batch {i}, loss: {outputs.loss.item():.4f}, accum: {accum_batch_size}/{self.config.batch_size}"
                 )
 
+            i += 1
             if accum_batch_size >= self.config.batch_size:
                 break
 
@@ -128,13 +280,16 @@ class Diloco(InnerOuterStrategy):
         tokenizer,
         config,
         synchronizer=None,
+        outer_optimizer=None,
     ):
+        self._init_loader_tracking()
         self.device = device
         self.world_size = world_size
         self.global_rank = global_rank
         self.tokenizer = tokenizer
         self.config = config
         self.params_offloaded = None
+        self.outer_optimizer = outer_optimizer
         self.handles_own_communication = method_handles_own_communication(
             self.config.outer_optimizer
         )
@@ -149,13 +304,22 @@ class Diloco(InnerOuterStrategy):
         loss_after_gather = 0.0
 
         if self.params_offloaded is None:
+            if self.outer_optimizer is not None and hasattr(
+                self.outer_optimizer, "prepare_lookahead"
+            ):
+                self.outer_optimizer.prepare_lookahead()
             self.params_offloaded = self._get_offloaded_param(model)
 
         inner_step_count = 0
         accum_batch_size = 0
         running_loss_this_accum = 0.0
 
-        for i, batch in enumerate(loader):
+        while inner_step_count < self.config.inner_steps:
+            try:
+                batch = self._next_batch(loader)
+            except StopIteration:
+                break
+
             input_ids = batch.to(self.device, non_blocking=True)
             labels = input_ids.clone()
             labels[labels == self.tokenizer.pad_token_id] = -100

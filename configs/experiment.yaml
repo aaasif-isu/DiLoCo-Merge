@@ -16,6 +16,9 @@
 #  11. 20-round E1 diagnostic:     python train.py --config configs/experiment.yaml --method spectral_alloc --partition iid --max_steps 20
 #  12. Decoupled Spectral-Alloc + IID:     python train.py --config configs/experiment.yaml --method spectral_alloc_decoupled --partition iid
 #  13. Decoupled Spectral-Alloc + non-IID: python train.py --config configs/experiment.yaml --method spectral_alloc_decoupled --partition noniid_language
+#  14. SVC + IID:                          python train.py --config configs/experiment.yaml --method svc --partition iid
+#  15. SVC + non-IID:                      python train.py --config configs/experiment.yaml --method svc --partition noniid_language
+#  16. IsoLoCo-SVC + IID:                  python train.py --config configs/experiment.yaml --method isoloco_svc --partition iid
 
 experiment:
   run_name: auto

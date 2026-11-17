@@ -99,6 +99,18 @@ method:
   kkt_tol: 1.0e-5
   feas_tol: 1.0e-7
 
+  # Singular Value Calibration (svc) options
+  svc_alpha: 0.1
+  svc_eps: 1.0e-12
+  svc_enabled: true
+
+  # Grouped Isotropic Covariance (group_iso / topbottom_iso) options
+  num_groups: 3
+  group_size: 2
+
+  # SpectraIsoLoCo (spectra_isoloco) options
+  spectra_c: 3.0
+
 evaluation:
   eval_frequency: 2                  # Evaluate global & per-worker validation loss every 2 outer windows
   val_token_budget: 2000000          # 2 million validation tokens
@@ -184,10 +196,164 @@ presets:
             - embed_tokens
             - wpe
             - lm_head
+        group_iso:
+          method: group_iso
+          strategy: group_iso
+          outer_optimizer: group_iso
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+          num_groups: 3
+        topbottom_iso:
+          method: topbottom_iso
+          strategy: topbottom_iso
+          outer_optimizer: topbottom_iso
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+          group_size: 2
+        spectra_isoloco:
+          method: spectra_isoloco
+          strategy: spectra_isoloco
+          outer_optimizer: spectra_isoloco
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+          spectra_c: 3.0
+        normalized_spectra_iso:
+          method: normalized_spectra_iso
+          strategy: normalized_spectra_iso
+          outer_optimizer: normalized_spectra_iso
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+          spectra_c: 0.1
+          normalized_spectra_c: 0.1
+        frob_matched_spectra_iso:
+          method: frob_matched_spectra_iso
+          strategy: frob_matched_spectra_iso
+          outer_optimizer: frob_matched_spectra_iso
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+          spectra_c: 0.1
+          frob_matched_spectra_c: 0.1
+        heloco:
+          method: heloco
+          strategy: heloco
+          outer_optimizer: heloco
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          heloco_rho: 1.0
+          heloco_c_ok: 0.2
+          heloco_k_s: 0.5
+          heloco_k_d: 1.0
+          heloco_kappa: 3.0
+          heloco_beta_max: 0.5
+          heloco_eps: 1.0e-8
+          heloco_correction_scope: tensorwise
         signal_iso:
           method: signal_iso
           strategy: signal_iso
           outer_optimizer: signal_iso
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+        agreement_iso:
+          method: agreement_iso
+          strategy: agreement_iso
+          outer_optimizer: agreement_iso
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+        erank_iso:
+          method: erank_iso
+          strategy: erank_iso
+          outer_optimizer: erank_iso
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+        rankiso_v2:
+          method: rankiso_v2
+          strategy: rankiso_v2
+          outer_optimizer: rankiso_v2
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+        erank_iso_fast:
+          method: erank_iso_fast
+          strategy: erank_iso_fast
+          outer_optimizer: erank_iso_fast
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+        erank_wiener_iso:
+          method: erank_wiener_iso
+          strategy: erank_wiener_iso
+          outer_optimizer: erank_wiener_iso
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+        gd_continuous_iso:
+          method: gd_continuous_iso
+          strategy: gd_continuous_iso
+          outer_optimizer: gd_continuous_iso
           outer_learning_rate: 1.5
           outer_momentum: 0.8
           outer_nesterov: true
@@ -244,6 +410,36 @@ presets:
           eval_actual_calib_loss_change: true
           kkt_tol: 1.0e-5
           feas_tol: 1.0e-7
+        svc:
+          method: svc
+          strategy: svc
+          outer_optimizer: svc
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+          svc_alpha: 0.1
+          svc_eps: 1.0e-12
+          svc_enabled: true
+        isoloco_svc:
+          method: isoloco_svc
+          strategy: isoloco_svc
+          outer_optimizer: isoloco_svc
+          outer_learning_rate: 1.5
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - wpe
+            - lm_head
+          svc_alpha: 0.1
+          svc_eps: 1.0e-12
+          svc_enabled: true
         isocloco:
           method: isocloco
           strategy: isocloco
@@ -363,9 +559,141 @@ presets:
           isoc_exclude_keys:
             - embed_tokens
             - lm_head
+        erank_iso:
+          method: erank_iso
+          strategy: erank_iso
+          outer_optimizer: erank_iso
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+        rankiso_v2:
+          method: rankiso_v2
+          strategy: rankiso_v2
+          outer_optimizer: rankiso_v2
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+        erank_iso_fast:
+          method: erank_iso_fast
+          strategy: erank_iso_fast
+          outer_optimizer: erank_iso_fast
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+        group_iso:
+          method: group_iso
+          strategy: group_iso
+          outer_optimizer: group_iso
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          num_groups: 3
+        topbottom_iso:
+          method: topbottom_iso
+          strategy: topbottom_iso
+          outer_optimizer: topbottom_iso
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          group_size: 2
+        spectra_isoloco:
+          method: spectra_isoloco
+          strategy: spectra_isoloco
+          outer_optimizer: spectra_isoloco
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          spectra_c: 3.0
+        normalized_spectra_iso:
+          method: normalized_spectra_iso
+          strategy: normalized_spectra_iso
+          outer_optimizer: normalized_spectra_iso
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          spectra_c: 0.1
+          normalized_spectra_c: 0.1
+        frob_matched_spectra_iso:
+          method: frob_matched_spectra_iso
+          strategy: frob_matched_spectra_iso
+          outer_optimizer: frob_matched_spectra_iso
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          spectra_c: 0.1
+          frob_matched_spectra_c: 0.1
+        heloco:
+          method: heloco
+          strategy: heloco
+          outer_optimizer: heloco
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          heloco_rho: 1.0
+          heloco_c_ok: 0.2
+          heloco_k_s: 0.5
+          heloco_k_d: 1.0
+          heloco_kappa: 3.0
+          heloco_beta_max: 0.5
+          heloco_eps: 1.0e-8
+          heloco_correction_scope: tensorwise
         signal_iso:
           strategy: signal_iso
           outer_optimizer: signal_iso
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+        agreement_iso:
+          method: agreement_iso
+          strategy: agreement_iso
+          outer_optimizer: agreement_iso
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+        gd_continuous_iso:
+          method: gd_continuous_iso
+          strategy: gd_continuous_iso
+          outer_optimizer: gd_continuous_iso
           outer_learning_rate: 1.8
           outer_momentum: 0.8
           outer_nesterov: true
@@ -418,6 +746,35 @@ presets:
           eval_actual_calib_loss_change: true
           kkt_tol: 1.0e-5
           feas_tol: 1.0e-7
+        svc:
+          method: svc
+          strategy: svc
+          outer_optimizer: svc
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          svc_alpha: 0.1
+          svc_eps: 1.0e-12
+          svc_enabled: true
+        isoloco_svc:
+          method: isoloco_svc
+          strategy: isoloco_svc
+          outer_optimizer: isoloco_svc
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          svc_alpha: 0.1
+          svc_eps: 1.0e-12
+          svc_enabled: true
+
         isocloco:
           method: isocloco
           strategy: isocloco
@@ -537,10 +894,109 @@ presets:
           isoc_exclude_keys:
             - embed_tokens
             - lm_head
+        group_iso:
+          method: group_iso
+          strategy: group_iso
+          outer_optimizer: group_iso
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          num_groups: 3
+        topbottom_iso:
+          method: topbottom_iso
+          strategy: topbottom_iso
+          outer_optimizer: topbottom_iso
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          group_size: 2
+        spectra_isoloco:
+          method: spectra_isoloco
+          strategy: spectra_isoloco
+          outer_optimizer: spectra_isoloco
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          spectra_c: 3.0
+        normalized_spectra_iso:
+          method: normalized_spectra_iso
+          strategy: normalized_spectra_iso
+          outer_optimizer: normalized_spectra_iso
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          spectra_c: 0.1
+          normalized_spectra_c: 0.1
+        frob_matched_spectra_iso:
+          method: frob_matched_spectra_iso
+          strategy: frob_matched_spectra_iso
+          outer_optimizer: frob_matched_spectra_iso
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          spectra_c: 0.1
+          frob_matched_spectra_c: 0.1
+        heloco:
+          method: heloco
+          strategy: heloco
+          outer_optimizer: heloco
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          heloco_rho: 1.0
+          heloco_c_ok: 0.2
+          heloco_k_s: 0.5
+          heloco_k_d: 1.0
+          heloco_kappa: 3.0
+          heloco_beta_max: 0.5
+          heloco_eps: 1.0e-8
+          heloco_correction_scope: tensorwise
         signal_iso:
           method: signal_iso
           strategy: signal_iso
           outer_optimizer: signal_iso
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+        agreement_iso:
+          method: agreement_iso
+          strategy: agreement_iso
+          outer_optimizer: agreement_iso
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+        gd_continuous_iso:
+          method: gd_continuous_iso
+          strategy: gd_continuous_iso
+          outer_optimizer: gd_continuous_iso
           outer_learning_rate: 1.8
           outer_momentum: 0.8
           outer_nesterov: true
@@ -593,6 +1049,34 @@ presets:
           eval_actual_calib_loss_change: true
           kkt_tol: 1.0e-5
           feas_tol: 1.0e-7
+        svc:
+          method: svc
+          strategy: svc
+          outer_optimizer: svc
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          svc_alpha: 0.1
+          svc_eps: 1.0e-12
+          svc_enabled: true
+        isoloco_svc:
+          method: isoloco_svc
+          strategy: isoloco_svc
+          outer_optimizer: isoloco_svc
+          outer_learning_rate: 1.8
+          outer_momentum: 0.8
+          outer_nesterov: true
+          isoc_orthogonalize_object: gradient
+          isoc_exclude_keys:
+            - embed_tokens
+            - lm_head
+          svc_alpha: 0.1
+          svc_eps: 1.0e-12
+          svc_enabled: true
         isocloco:
           method: isocloco
           strategy: isocloco
